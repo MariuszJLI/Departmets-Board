@@ -39,14 +39,14 @@
       max-width: 100%;
     }
     .department {
-      background: #F37021;
-      color: white;
+      background: #F37021; /* JLI Logo Orange */
+      color: black; /* Black text */
       padding: 20px;
       border-radius: 10px;
       flex: 1 1 30%;
       min-width: 280px;
       max-width: 400px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
     table {
       width: 100%;
@@ -108,7 +108,7 @@
   </div>
 
   <script>
-    const apiUrl = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec"; // Replace with your Apps Script Web App URL
+    const apiUrl = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec"; // Updated Apps Script Web App URL
 
     async function fetchAndDisplay() {
       try {
@@ -121,6 +121,7 @@
           pallets: data.pallets
         };
 
+        // Populate tables
         for (const [key, values] of Object.entries(departments)) {
           const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
           tableBody.innerHTML = "";
@@ -140,6 +141,8 @@
         // Update date/time display
         if (data.datetime) {
           document.getElementById("datetime").textContent = "Last updated: " + data.datetime;
+        } else {
+          document.getElementById("datetime").textContent = "Failed to load date/time";
         }
       } catch (err) {
         console.error("Error loading data:", err);
@@ -148,7 +151,7 @@
     }
 
     fetchAndDisplay();
-    setInterval(fetchAndDisplay, 60000);
+    setInterval(fetchAndDisplay, 60000); // Refresh every 60 seconds
   </script>
 </body>
 </html>
