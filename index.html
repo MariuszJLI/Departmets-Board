@@ -26,6 +26,11 @@
       margin: 0;
       font-size: 32px;
     }
+    #datetime {
+      text-align: center;
+      font-size: 20px;
+      margin-top: 10px;
+    }
     .departments {
       display: flex;
       justify-content: space-around;
@@ -46,6 +51,8 @@
     table {
       width: 100%;
       border-collapse: collapse;
+      background-color: white;
+      color: black;
     }
     th, td {
       padding: 8px;
@@ -68,15 +75,14 @@
     <div style="width: 40px;"></div>
   </header>
 
+  <div id="datetime">Loading current date and time...</div>
+
   <div class="departments">
     <div class="department">
       <h2>Distribution</h2>
       <table id="distribution-table">
         <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Task</th>
-          </tr>
+          <tr><th>Employee</th><th>Task</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -85,10 +91,7 @@
       <h2>Goods In</h2>
       <table id="goodsin-table">
         <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Task</th>
-          </tr>
+          <tr><th>Employee</th><th>Task</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -97,10 +100,7 @@
       <h2>Pallets</h2>
       <table id="pallets-table">
         <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Task</th>
-          </tr>
+          <tr><th>Employee</th><th>Task</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -123,21 +123,27 @@
 
         for (const [key, values] of Object.entries(departments)) {
           const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
-          tableBody.innerHTML = ""; // Clear previous data
+          tableBody.innerHTML = "";
 
           values.forEach(([name, task]) => {
             const row = document.createElement("tr");
             const nameCell = document.createElement("td");
-            nameCell.textContent = name;
             const taskCell = document.createElement("td");
+            nameCell.textContent = name;
             taskCell.textContent = task || "-";
             row.appendChild(nameCell);
             row.appendChild(taskCell);
             tableBody.appendChild(row);
           });
         }
+
+        // Update date/time display
+        if (data.datetime) {
+          document.getElementById("datetime").textContent = "Last updated: " + data.datetime;
+        }
       } catch (err) {
         console.error("Error loading data:", err);
+        document.getElementById("datetime").textContent = "Failed to load data";
       }
     }
 
