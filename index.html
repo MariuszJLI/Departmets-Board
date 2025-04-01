@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Daily Department Schedule</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: white;
+      padding: 20px;
+      margin: 0;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    header img {
+      height: 40px;
+    }
+    h1 {
+      text-align: center;
+      margin: 0;
+      font-size: 32px;
+    }
+    .departments {
+      display: flex;
+      justify-content: space-around;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .department {
+      background: #F37021;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 30%;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+    .department h2 {
+      text-align: center;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+      padding-bottom: 10px;
+    }
+    ul {
+      list-style: none;
+      padding-left: 0;
+      font-size: 18px;
+    }
+    li {
+      padding: 4px 0;
+    }
+    @media (max-width: 900px) {
+      .department {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="jli-logo.png" alt="JLI Logo" />
+    <h1>Daily Department Schedule</h1>
+    <div style="width: 40px;"></div>
+  </header>
+
+  <div class="departments">
+    <div class="department">
+      <h2>Distribution</h2>
+      <ul id="distribution-list"></ul>
+    </div>
+    <div class="department">
+      <h2>Goods In</h2>
+      <ul id="goodsin-list"></ul>
+    </div>
+    <div class="department">
+      <h2>Pallets</h2>
+      <ul id="pallets-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // Replace with your Apps Script Web App URL
+
+    async function fetchAndDisplay() {
+      try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+
+        const map = {
+          distribution: data.distribution,
+          goodsin: data.goodsin,
+          pallets: data.pallets
+        };
+
+        for (const [key, values] of Object.entries(map)) {
+          const list = document.getElementById(`${key}-list`);
+          list.innerHTML = "";
+
+          values.forEach(([name, task]) => {
+            if (name) {
+              const li = document.createElement("li");
+              li.textContent = task ? `${name} – ${task}` : name;
+              list.appendChild(li);
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error loading data:", err);
+      }
+    }
+
+    fetchAndDisplay();
+    setInterval(fetchAndDisplay, 60000);
+  </script>
+</body>
+</html>
