@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Department Schedule</title>
   <style>
     body {
@@ -27,43 +28,39 @@
     }
     .departments {
       display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 20px;
-  max-width: 100%
+      justify-content: space-around;
+      gap: 20px;
+      flex-wrap: wrap;
+      max-width: 100%;
     }
     .department {
       background: #F37021;
-  color: white;
-  padding: 20px;
-  border-radius: 10px;
-  flex: 1 1 30%;
-  min-width: 280px;
-  max-width: 400px;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      flex: 1 1 30%;
+      min-width: 280px;
+      max-width: 400px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     }
-    .department h2 {
-      text-align: center;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
-      padding-bottom: 10px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
     }
-    ul {
-      list-style: none;
-      padding-left: 0;
-      font-size: 18px;
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
     }
-    li {
-      padding: 4px 0;
+    th {
+      background-color: #333;
+      color: white;
     }
-    @media (max-width: 900px) {
-      .department {
-        width: 100%;
-      }
+    tr:hover {
+      background-color: #f5f5f5;
     }
   </style>
 </head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <body>
   <header>
     <img src="jli-logo.png" alt="JLI Logo" />
@@ -74,15 +71,39 @@
   <div class="departments">
     <div class="department">
       <h2>Distribution</h2>
-      <ul id="distribution-list"></ul>
+      <table id="distribution-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Task</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
     <div class="department">
       <h2>Goods In</h2>
-      <ul id="goodsin-list"></ul>
+      <table id="goodsin-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Task</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
     <div class="department">
       <h2>Pallets</h2>
-      <ul id="pallets-list"></ul>
+      <table id="pallets-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Task</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 
@@ -94,22 +115,25 @@
         const res = await fetch(apiUrl);
         const data = await res.json();
 
-        const map = {
+        const departments = {
           distribution: data.distribution,
           goodsin: data.goodsin,
           pallets: data.pallets
         };
 
-        for (const [key, values] of Object.entries(map)) {
-          const list = document.getElementById(`${key}-list`);
-          list.innerHTML = "";
+        for (const [key, values] of Object.entries(departments)) {
+          const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
+          tableBody.innerHTML = ""; // Clear previous data
 
           values.forEach(([name, task]) => {
-            if (name) {
-              const li = document.createElement("li");
-              li.textContent = task ? `${name} – ${task}` : name;
-              list.appendChild(li);
-            }
+            const row = document.createElement("tr");
+            const nameCell = document.createElement("td");
+            nameCell.textContent = name;
+            const taskCell = document.createElement("td");
+            taskCell.textContent = task || "-";
+            row.appendChild(nameCell);
+            row.appendChild(taskCell);
+            tableBody.appendChild(row);
           });
         }
       } catch (err) {
