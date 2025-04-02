@@ -185,38 +185,43 @@
   </div>
 
   <script>
-    const apiUrl = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec"; 
+    // First API URL for main data (from Sheet1)
+    const apiUrlMainData = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec";  // Update with your Sheet1 API URL
 
-    let availableNames = [];
-    let availableTasks = {
-      distribution: [],
-      goodsin: [],
-      pallets: []
-    };
-
-    let selectedCell = null; // Track the selected cell for editing
-    let selectedType = null; // Track whether we're editing a name or task
+    // Second API URL for pop-up modal data (from All Employees and All Tasks)
+    const apiUrlModalData = "https://script.google.com/macros/s/AKfycbzpQr_2mz2Uh97GvXWm46avS07R7dcvITo03lnmjHSWO-KBbKl44I071HF7krZtcncU/exec";  // Update with your Modal API URL
 
     async function fetchAndDisplay() {
       try {
-        const res = await fetch(apiUrl);
-        const data = await res.json();
+        // Fetch main data (from Sheet1)
+        const resMainData = await fetch(apiUrlMainData);
+        const dataMain = await resMainData.json();  // Parse the main data response into JSON
+        console.log(dataMain);  // Log main data to check the structure
 
-        availableNames = data.employees; // Fetch employees from Apps Script
-        availableTasks.distribution = data.distributionTasks; // Distribution tasks
-        availableTasks.goodsin = data.goodsInTasks; // Goods In tasks
-        availableTasks.pallets = data.palletsTasks; // Pallets tasks
+        // Fetch modal data (from All Employees and All Tasks)
+        const resModalData = await fetch(apiUrlModalData);
+        const dataModal = await resModalData.json();  // Parse the modal data response into JSON
+        console.log(dataModal);  // Log modal data to check the structure
 
-        const departments = {
-          distribution: data.distribution,
-          goodsin: data.goodsin,
-          pallets: data.pallets
+        // Main Data Handling: Extract distribution, goodsin, and pallets tasks
+        const availableTasks = {
+          distribution: dataMain.distribution || [],
+          goodsin: dataMain.goodsin || [],
+          pallets: dataMain.pallets || []
         };
 
-        // Populate tables
-        for (const [key, values] of Object.entries(departments)) {
+        // Modal Data Handling: Extract employee names and task names
+        const availableNames = dataModal.employees || [];
+        const availableTaskNames = {
+          distribution: dataModal.distributionTasks || [],
+          goodsin: dataModal.goodsInTasks || [],
+          pallets: dataModal.palletsTasks || []
+        };
+
+        // Populate the tables with main data (tasks for distribution, goodsin, and pallets)
+        for (const [key, values] of Object.entries(availableTasks)) {
           const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
-          tableBody.innerHTML = "";
+          tableBody.innerHTML = "";  // Clear existing data
 
           values.forEach(([name, task]) => {
             const row = document.createElement("tr");
@@ -228,69 +233,76 @@
             row.appendChild(nameCell);
             row.appendChild(taskCell);
             tableBody.appendChild(row);
-
-            // Add click event for names and tasks
-            nameCell.addEventListener("click", function () {
-              selectedCell = nameCell;
-              selectedType = "name";
-              showModal();
-            });
-
-            taskCell.addEventListener("click", function () {
-              selectedCell = taskCell;
-              selectedType = "task";
-              showModal();
-            });
           });
         }
 
-        // Date/time display from browser's current date and time
+        // Populate the pop-up modal for employee names
+        const nameModalList = document.getElementById("nameList");
+        nameModalList.innerHTML = "";  // Clear previous list
+
+        availableNames.forEach(name => {
+          const listItem = document.createElement("li");
+          listItem.textContent = name;
+          listItem.addEventListener("click", function() {
+            selectedCell.textContent = name;  // Update the selected name in the table
+            closeModal("nameModal");
+          });
+          nameModalList.appendChild(listItem);
+        });
+
+        // Populate the pop-up modal for task names (distribution, goodsin, pallets)
+        const taskModalList = document.getElementById("taskList");
+        taskModalList.innerHTML = "";  // Clear previous list
+
+        // Add tasks for each department
+        const taskCategories = [
+          { name: "Distribution", tasks: availableTaskNames.distribution },
+          { name: "Goods In", tasks: availableTaskNames.goodsin },
+          { name: "Pallets", tasks: availableTaskNames.pallets }
+        ];
+
+        taskCategories.forEach(category => {
+          const categoryTitle = document.createElement("h3");
+          categoryTitle.textContent = category.name;
+          taskModalList.appendChild(categoryTitle);
+
+          category.tasks.forEach(task => {
+            const listItem = document.createElement("li");
+            listItem.textContent = task;
+            listItem.addEventListener("click", function() {
+              selectedCell.textContent = task;  // Update the selected task in the table
+              closeModal("taskModal");
+            });
+            taskModalList.appendChild(listItem);
+          });
+        });
+
+        // Update the date and time on the page
         const currentDate = new Date();
-        const formattedDate = currentDate.toLocaleString(); // Format as you like
+        const formattedDate = currentDate.toLocaleString();
         document.getElementById("datetime").textContent = "Last updated: " + formattedDate;
+
       } catch (err) {
         console.error("Error loading data:", err);
         document.getElementById("datetime").textContent = "Failed to load data";
       }
     }
 
-    function showModal() {
-      const modalId = selectedType === "name" ? "nameModal" : "taskModal";
-      const listId = selectedType === "name" ? "nameList" : "taskList";
-      const items = selectedType === "name" ? availableNames : (selectedType === "task" && selectedCell === "distribution" ? availableTasks.distribution : (selectedCell === "goodsin" ? availableTasks.goodsin : availableTasks.pallets));
-
-      // Populate the modal with options
-      const list = document.getElementById(listId);
-      list.innerHTML = ""; // Clear previous list
-
-      items.forEach(item => {
-        const listItem = document.createElement("li");
-        listItem.textContent = item;
-        listItem.addEventListener("click", function () {
-          selectedCell.textContent = item; // Update the selected cell with the item
-          closeModal(modalId);
-        });
-        list.appendChild(listItem);
-      });
-
-      document.getElementById(modalId).style.display = "block";
-    }
-
+    // Function to close modal
     function closeModal(modalId) {
       document.getElementById(modalId).style.display = "none";
     }
 
-    // Close modal on click of "x"
+    // Event listeners for modals close buttons
     document.getElementById("nameClose").addEventListener("click", function () {
       closeModal("nameModal");
     });
-
     document.getElementById("taskClose").addEventListener("click", function () {
       closeModal("taskModal");
     });
 
+    // Initialize data on page load
     fetchAndDisplay();
-    setInterval(fetchAndDisplay, 60000); // Refresh every 60 seconds
   </script>
 </body>
 </html>
