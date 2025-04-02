@@ -195,6 +195,7 @@
     };
 
     let selectedCell = null; // Track the selected cell for editing
+    let selectedType = null; // Track whether we're editing a name or task
 
     async function fetchAndDisplay() {
       try {
@@ -231,12 +232,14 @@
             // Add click event for names and tasks
             nameCell.addEventListener("click", function () {
               selectedCell = nameCell;
-              showModal("name");
+              selectedType = "name";
+              showModal();
             });
 
             taskCell.addEventListener("click", function () {
               selectedCell = taskCell;
-              showModal("task");
+              selectedType = "task";
+              showModal();
             });
           });
         }
@@ -251,10 +254,10 @@
       }
     }
 
-    function showModal(type) {
-      const modalId = type === "name" ? "nameModal" : "taskModal";
-      const listId = type === "name" ? "nameList" : "taskList";
-      const items = type === "name" ? availableNames : (type === "task" && selectedCell === "distribution" ? availableTasks.distribution : (selectedCell === "goodsin" ? availableTasks.goodsin : availableTasks.pallets));
+    function showModal() {
+      const modalId = selectedType === "name" ? "nameModal" : "taskModal";
+      const listId = selectedType === "name" ? "nameList" : "taskList";
+      const items = selectedType === "name" ? availableNames : (selectedType === "task" && selectedCell === "distribution" ? availableTasks.distribution : (selectedCell === "goodsin" ? availableTasks.goodsin : availableTasks.pallets));
 
       // Populate the modal with options
       const list = document.getElementById(listId);
