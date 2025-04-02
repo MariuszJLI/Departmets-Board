@@ -146,12 +146,10 @@
           });
         }
 
-        // Update date/time display
-        if (data.datetime) {
-          document.getElementById("datetime").textContent = "Last updated: " + data.datetime;
-        } else {
-          document.getElementById("datetime").textContent = "Failed to load date/time";
-        }
+        // Update date/time from browser's current date and time
+        const currentDate = new Date();
+        const formattedDate = currentDate.toLocaleString(); // Format as you like
+        document.getElementById("datetime").textContent = "Last updated: " + formattedDate;
       } catch (err) {
         console.error("Error loading data:", err);
         document.getElementById("datetime").textContent = "Failed to load data";
