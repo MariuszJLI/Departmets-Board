@@ -49,13 +49,13 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
     h2 {
-      color: white;
+      color: white; /* Department header in white */
     }
     table {
       width: 100%;
       border-collapse: collapse;
       background-color: white;
-      color: black;
+      color: black; /* Employee names and tasks in black */
     }
     th, td {
       padding: 8px;
@@ -75,6 +75,8 @@
     tr:hover {
       background-color: #f5f5f5;
     }
+
+    /* Modal styling */
     .modal {
       display: none;
       position: fixed;
@@ -87,55 +89,88 @@
       padding-top: 60px;
       overflow: auto;
     }
+
     .modal-content {
-      background-color: #ccc;
+      background-color: #fefefe;
       margin: 5% auto;
       padding: 20px;
       border: 1px solid #888;
-      width: 50%;
-      color: black;
+      width: 80%;
     }
-    .modal-content input[type="text"] {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-      font-size: 16px;
-      border: 1px solid #888;
-      border-radius: 4px;
-    }
+
     .close {
       color: #aaa;
       float: right;
       font-size: 28px;
       font-weight: bold;
     }
+
     .close:hover,
     .close:focus {
       color: black;
       text-decoration: none;
       cursor: pointer;
     }
+
     .options-list {
       list-style-type: none;
       padding: 0;
-      color: black;
     }
+
     .options-list li {
       padding: 8px;
       cursor: pointer;
     }
+
     .options-list li:hover {
       background-color: #ddd;
     }
   </style>
 </head>
 <body>
+  <header>
+    <img src="jli-logo.png" alt="JLI Logo" />
+    <h1>Daily Department Schedule</h1>
+    <div style="width: 40px;"></div>
+  </header>
+
+  <div id="datetime">Loading current date and time...</div>
+
+  <div class="departments">
+    <div class="department">
+      <h2>Distribution</h2>
+      <table id="distribution-table">
+        <thead>
+          <tr><th>Employee</th><th>Task</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="department">
+      <h2>Goods In</h2>
+      <table id="goodsin-table">
+        <thead>
+          <tr><th>Employee</th><th>Task</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="department">
+      <h2>Pallets</h2>
+      <table id="pallets-table">
+        <thead>
+          <tr><th>Employee</th><th>Task</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Modal for name selection -->
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
       <h2>Select an Employee</h2>
-      <input type="text" id="nameSearch" placeholder="Search names...">
       <ul class="options-list" id="nameList"></ul>
     </div>
   </div>
@@ -145,133 +180,129 @@
     <div class="modal-content">
       <span class="close" id="taskClose">&times;</span>
       <h2>Select a Task</h2>
-      <input type="text" id="taskSearch" placeholder="Search tasks...">
       <ul class="options-list" id="taskList"></ul>
     </div>
   </div>
-const apiUrlMainData = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec";
-const apiUrlModalData = "https://script.google.com/macros/s/AKfycbzpQr_2mz2Uh97GvXWm46avS07R7dcvITo03lnmjHSWO-KBbKl44I071HF7krZtcncU/exec";
-
-let selectedCell = null;
-let selectedType = null;
-let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
-let availableNames = [];
-
-async function fetchAndDisplay() {
-  try {
-    const resMainData = await fetch(apiUrlMainData);
-    const dataMain = await resMainData.json();
-
-    const resModalData = await fetch(apiUrlModalData);
-    const dataModal = await resModalData.json();
-
-    const availableTasks = {
-      distribution: dataMain.distribution || [],
-      goodsin: dataMain.goodsin || [],
-      pallets: dataMain.pallets || []
-    };
-
-    availableNames = dataModal.employees || [];
-    availableTaskNames = {
-      distribution: dataModal.distributionTasks || [],
-      goodsin: dataModal.goodsInTasks || [],
-      pallets: dataModal.palletsTasks || []
-    };
-
-    for (const [key, values] of Object.entries(availableTasks)) {
-      const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
-      tableBody.innerHTML = "";
-
-      values.forEach(([name, task]) => {
-        const row = document.createElement("tr");
-        const nameCell = document.createElement("td");
-        const taskCell = document.createElement("td");
-
-        nameCell.textContent = name;
-        taskCell.textContent = task || "-";
-
-        nameCell.addEventListener("click", function () {
-          selectedCell = nameCell;
-          selectedType = "name";
-          document.getElementById("nameModal").style.display = "block";
-        });
-
-        taskCell.addEventListener("click", function () {
-          selectedCell = taskCell;
-          selectedType = "task";
-          populateTaskModal(key);
-          document.getElementById("taskModal").style.display = "block";
-        });
-
-        row.appendChild(nameCell);
-        row.appendChild(taskCell);
-        tableBody.appendChild(row);
-      });
-    }
-
-    document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
-
-    const nameList = document.getElementById("nameList");
-    nameList.innerHTML = "";
-    availableNames.forEach(name => {
-      const li = document.createElement("li");
-      li.textContent = name;
-      li.addEventListener("click", function () {
-        if (selectedCell) selectedCell.textContent = name;
-        closeModal("nameModal");
-      });
-      nameList.appendChild(li);
-    });
-  } catch (err) {
-    console.error("Error loading data:", err);
-    document.getElementById("datetime").textContent = "Failed to load data";
-  }
-}
-
-function populateTaskModal(department) {
-  const taskList = document.getElementById("taskList");
-  taskList.innerHTML = "";
-  const tasks = availableTaskNames[department] || [];
-  tasks.forEach(task => {
-    const li = document.createElement("li");
-    li.textContent = task;
-    li.addEventListener("click", function () {
-      if (selectedCell) selectedCell.textContent = task;
-      closeModal("taskModal");
-    });
-    taskList.appendChild(li);
-  });
-}
-
-function closeModal(modalId) {
-  document.getElementById(modalId).style.display = "none";
-}
-
-document.getElementById("nameClose").addEventListener("click", function () {
-  closeModal("nameModal");
-});
-document.getElementById("taskClose").addEventListener("click", function () {
-  closeModal("taskModal");
-});
-
-fetchAndDisplay();
 
   <script>
-    document.getElementById("nameSearch").addEventListener("input", function() {
-      const filter = this.value.toLowerCase();
-      const items = document.querySelectorAll("#nameList li");
-      items.forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
-      });
+    // First API URL for main data (from Sheet1)
+    const apiUrlMainData = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec";  // Update with your Sheet1 API URL
+
+    // Second API URL for pop-up modal data (from All Employees and All Tasks)
+    const apiUrlModalData = "https://script.google.com/macros/s/AKfycbzpQr_2mz2Uh97GvXWm46avS07R7dcvITo03lnmjHSWO-KBbKl44I071HF7krZtcncU/exec";  // Update with your Modal API URL
+
+    async function fetchAndDisplay() {
+      try {
+        // Fetch main data (from Sheet1)
+        const resMainData = await fetch(apiUrlMainData);
+        const dataMain = await resMainData.json();  // Parse the main data response into JSON
+        console.log(dataMain);  // Log main data to check the structure
+
+        // Fetch modal data (from All Employees and All Tasks)
+        const resModalData = await fetch(apiUrlModalData);
+        const dataModal = await resModalData.json();  // Parse the modal data response into JSON
+        console.log(dataModal);  // Log modal data to check the structure
+
+        // Main Data Handling: Extract distribution, goodsin, and pallets tasks
+        const availableTasks = {
+          distribution: dataMain.distribution || [],
+          goodsin: dataMain.goodsin || [],
+          pallets: dataMain.pallets || []
+        };
+
+        // Modal Data Handling: Extract employee names and task names
+        const availableNames = dataModal.employees || [];
+        const availableTaskNames = {
+          distribution: dataModal.distributionTasks || [],
+          goodsin: dataModal.goodsInTasks || [],
+          pallets: dataModal.palletsTasks || []
+        };
+
+        // Populate the tables with main data (tasks for distribution, goodsin, and pallets)
+        for (const [key, values] of Object.entries(availableTasks)) {
+          const tableBody = document.getElementById(${key}-table).getElementsByTagName("tbody")[0];
+          tableBody.innerHTML = "";  // Clear existing data
+
+          values.forEach(([name, task]) => {
+            const row = document.createElement("tr");
+            const nameCell = document.createElement("td");
+            const taskCell = document.createElement("td");
+
+            nameCell.textContent = name;
+            taskCell.textContent = task || "-";
+            row.appendChild(nameCell);
+            row.appendChild(taskCell);
+            tableBody.appendChild(row);
+          });
+        }
+
+        // Populate the pop-up modal for employee names
+        const nameModalList = document.getElementById("nameList");
+        nameModalList.innerHTML = "";  // Clear previous list
+
+        availableNames.forEach(name => {
+          const listItem = document.createElement("li");
+          listItem.textContent = name;
+          listItem.addEventListener("click", function() {
+            selectedCell.textContent = name;  // Update the selected name in the table
+            closeModal("nameModal");
+          });
+          nameModalList.appendChild(listItem);
+        });
+
+        // Populate the pop-up modal for task names (distribution, goodsin, pallets)
+        const taskModalList = document.getElementById("taskList");
+        taskModalList.innerHTML = "";  // Clear previous list
+
+        // Add tasks for each department
+        const taskCategories = [
+          { name: "Distribution", tasks: availableTaskNames.distribution },
+          { name: "Goods In", tasks: availableTaskNames.goodsin },
+          { name: "Pallets", tasks: availableTaskNames.pallets }
+        ];
+
+        taskCategories.forEach(category => {
+          const categoryTitle = document.createElement("h3");
+          categoryTitle.textContent = category.name;
+          taskModalList.appendChild(categoryTitle);
+
+          category.tasks.forEach(task => {
+            const listItem = document.createElement("li");
+            listItem.textContent = task;
+            listItem.addEventListener("click", function() {
+              selectedCell.textContent = task;  // Update the selected task in the table
+              closeModal("taskModal");
+            });
+            taskModalList.appendChild(listItem);
+          });
+        });
+
+        // Update the date and time on the page
+        const currentDate = new Date();
+        const formattedDate = currentDate.toLocaleString();
+        document.getElementById("datetime").textContent = "Last updated: " + formattedDate;
+
+      } catch (err) {
+        console.error("Error loading data:", err);
+        document.getElementById("datetime").textContent = "Failed to load data";
+      }
+    }
+
+    // Function to close modal
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = "none";
+    }
+
+    // Event listeners for modals close buttons
+    document.getElementById("nameClose").addEventListener("click", function () {
+      closeModal("nameModal");
+    });
+    document.getElementById("taskClose").addEventListener("click", function () {
+      closeModal("taskModal");
     });
 
-    document.getElementById("taskSearch").addEventListener("input", function() {
-      const filter = this.value.toLowerCase();
-      const items = document.querySelectorAll("#taskList li");
-      items.forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
-      });
-    });
+    // Initialize data on page load
+    fetchAndDisplay();
   </script>
 </body>
 </html>
