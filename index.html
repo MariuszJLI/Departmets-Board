@@ -189,6 +189,7 @@
   <script>
     const apiUrlMainData = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec";
     const apiUrlModalData = "https://script.google.com/macros/s/AKfycbzpQr_2mz2Uh97GvXWm46avS07R7dcvITo03lnmjHSWO-KBbKl44I071HF7krZtcncU/exec";
+    const apiUrlUpdateCell = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec"; // Replace this with your Apps Script Web App POST URL
 
     let selectedCell = null;
     let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
@@ -219,7 +220,7 @@
           const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
           tableBody.innerHTML = "";
 
-          values.forEach(([name, task]) => {
+          values.forEach(([name, task], index) => {
             const row = document.createElement("tr");
             const nameCell = document.createElement("td");
             const taskCell = document.createElement("td");
@@ -229,11 +230,13 @@
 
             nameCell.addEventListener("click", function () {
               selectedCell = nameCell;
+              selectedCell.dataset = { rowIndex: index + 12, department: key, colType: "name" };
               document.getElementById("nameModal").style.display = "block";
             });
 
             taskCell.addEventListener("click", function () {
               selectedCell = taskCell;
+              selectedCell.dataset = { rowIndex: index + 12, department: key, colType: "task" };
               populateTaskModal(key);
               document.getElementById("taskModal").style.display = "block";
             });
@@ -250,8 +253,11 @@
           const li = document.createElement("li");
           li.textContent = name;
           li.addEventListener("click", function () {
-            if (selectedCell) selectedCell.textContent = name;
-            closeModal("nameModal");
+            if (selectedCell) {
+              selectedCell.textContent = name;
+              updateSheetValue("name", name);
+              closeModal("nameModal");
+            }
           });
           nameList.appendChild(li);
         });
@@ -271,10 +277,31 @@
         const li = document.createElement("li");
         li.textContent = task;
         li.addEventListener("click", function () {
-          if (selectedCell) selectedCell.textContent = task;
-          closeModal("taskModal");
+          if (selectedCell) {
+            selectedCell.textContent = task;
+            updateSheetValue("task", task);
+            closeModal("taskModal");
+          }
         });
         taskList.appendChild(li);
+      });
+    }
+
+    function updateSheetValue(colType, value) {
+      const rowIndex = selectedCell.dataset.rowIndex;
+      const department = selectedCell.dataset.department;
+
+      fetch(apiUrlUpdateCell, {
+        method: "POST",
+        body: JSON.stringify({
+          department: department,
+          rowIndex: rowIndex,
+          colType: colType,
+          value: value
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        }
       });
     }
 
