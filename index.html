@@ -291,6 +291,8 @@
       const rowIndex = selectedCell.dataset.rowIndex;
       const department = selectedCell.dataset.department;
 
+      console.log("SENDING TO SHEET:", { department, rowIndex, colType, value });
+
       fetch(apiUrlUpdateCell, {
         method: "POST",
         body: JSON.stringify({
@@ -302,7 +304,10 @@
         headers: {
           "Content-Type": "application/json"
         }
-      });
+      })
+      .then(response => response.json())
+      .then(data => console.log("RESPONSE FROM SHEET:", data))
+      .catch(err => console.error("POST ERROR:", err));
     }
 
     function closeModal(modalId) {
