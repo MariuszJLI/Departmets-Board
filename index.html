@@ -149,6 +149,112 @@
       <ul class="options-list" id="taskList"></ul>
     </div>
   </div>
+const apiUrlMainData = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec";
+const apiUrlModalData = "https://script.google.com/macros/s/AKfycbzpQr_2mz2Uh97GvXWm46avS07R7dcvITo03lnmjHSWO-KBbKl44I071HF7krZtcncU/exec";
+
+let selectedCell = null;
+let selectedType = null;
+let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
+let availableNames = [];
+
+async function fetchAndDisplay() {
+  try {
+    const resMainData = await fetch(apiUrlMainData);
+    const dataMain = await resMainData.json();
+
+    const resModalData = await fetch(apiUrlModalData);
+    const dataModal = await resModalData.json();
+
+    const availableTasks = {
+      distribution: dataMain.distribution || [],
+      goodsin: dataMain.goodsin || [],
+      pallets: dataMain.pallets || []
+    };
+
+    availableNames = dataModal.employees || [];
+    availableTaskNames = {
+      distribution: dataModal.distributionTasks || [],
+      goodsin: dataModal.goodsInTasks || [],
+      pallets: dataModal.palletsTasks || []
+    };
+
+    for (const [key, values] of Object.entries(availableTasks)) {
+      const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
+      tableBody.innerHTML = "";
+
+      values.forEach(([name, task]) => {
+        const row = document.createElement("tr");
+        const nameCell = document.createElement("td");
+        const taskCell = document.createElement("td");
+
+        nameCell.textContent = name;
+        taskCell.textContent = task || "-";
+
+        nameCell.addEventListener("click", function () {
+          selectedCell = nameCell;
+          selectedType = "name";
+          document.getElementById("nameModal").style.display = "block";
+        });
+
+        taskCell.addEventListener("click", function () {
+          selectedCell = taskCell;
+          selectedType = "task";
+          populateTaskModal(key);
+          document.getElementById("taskModal").style.display = "block";
+        });
+
+        row.appendChild(nameCell);
+        row.appendChild(taskCell);
+        tableBody.appendChild(row);
+      });
+    }
+
+    document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+
+    const nameList = document.getElementById("nameList");
+    nameList.innerHTML = "";
+    availableNames.forEach(name => {
+      const li = document.createElement("li");
+      li.textContent = name;
+      li.addEventListener("click", function () {
+        if (selectedCell) selectedCell.textContent = name;
+        closeModal("nameModal");
+      });
+      nameList.appendChild(li);
+    });
+  } catch (err) {
+    console.error("Error loading data:", err);
+    document.getElementById("datetime").textContent = "Failed to load data";
+  }
+}
+
+function populateTaskModal(department) {
+  const taskList = document.getElementById("taskList");
+  taskList.innerHTML = "";
+  const tasks = availableTaskNames[department] || [];
+  tasks.forEach(task => {
+    const li = document.createElement("li");
+    li.textContent = task;
+    li.addEventListener("click", function () {
+      if (selectedCell) selectedCell.textContent = task;
+      closeModal("taskModal");
+    });
+    taskList.appendChild(li);
+  });
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = "none";
+}
+
+document.getElementById("nameClose").addEventListener("click", function () {
+  closeModal("nameModal");
+});
+document.getElementById("taskClose").addEventListener("click", function () {
+  closeModal("taskModal");
+});
+
+fetchAndDisplay();
 
   <script>
     document.getElementById("nameSearch").addEventListener("input", function() {
