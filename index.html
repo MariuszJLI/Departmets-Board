@@ -141,33 +141,19 @@
   <div class="departments">
     <div class="department">
       <h2>Distribution</h2>
-      <table id="distribution-table">
-        <thead>
-          <tr><th>Employee</th><th>Task</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <table id="distribution-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="department">
       <h2>Goods In</h2>
-      <table id="goodsin-table">
-        <thead>
-          <tr><th>Employee</th><th>Task</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <table id="goodsin-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="department">
       <h2>Pallets</h2>
-      <table id="pallets-table">
-        <thead>
-          <tr><th>Employee</th><th>Task</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <table id="pallets-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 
+  <!-- Modals -->
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
@@ -187,9 +173,10 @@
   </div>
 
   <script>
-    const apiUrlMainData = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec";
-    const apiUrlModalData = "https://script.google.com/macros/s/AKfycbzpQr_2mz2Uh97GvXWm46avS07R7dcvITo03lnmjHSWO-KBbKl44I071HF7krZtcncU/exec";
-    const apiUrlUpdateCell = "https://script.google.com/macros/s/AKfycbxYRGg6qrm4N_RTdfH0-BIrVJpMjsEjkSnOO8oX-ZrCUUtsR7qPTUT9xXI-FYudI7Jk/exec"; // Replace this with your Apps Script Web App POST URL
+    const proxyBase = "https://departments-board.glitch.me"; // Replace this with your Glitch app URL
+    const apiUrlMainData = `${proxyBase}/?action=getMain`;
+    const apiUrlModalData = `${proxyBase}/?action=getModal`;
+    const apiUrlUpdateCell = proxyBase;
 
     let selectedCell = null;
     let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
@@ -219,28 +206,23 @@
         for (const [key, values] of Object.entries(availableTasks)) {
           const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
           tableBody.innerHTML = "";
-
           values.forEach(([name, task], index) => {
             const row = document.createElement("tr");
             const nameCell = document.createElement("td");
             const taskCell = document.createElement("td");
-
             nameCell.textContent = name;
             taskCell.textContent = task || "-";
-
             nameCell.addEventListener("click", function () {
               selectedCell = nameCell;
               selectedCell.dataset = { rowIndex: index + 12, department: key, colType: "name" };
               document.getElementById("nameModal").style.display = "block";
             });
-
             taskCell.addEventListener("click", function () {
               selectedCell = taskCell;
               selectedCell.dataset = { rowIndex: index + 12, department: key, colType: "task" };
               populateTaskModal(key);
               document.getElementById("taskModal").style.display = "block";
             });
-
             row.appendChild(nameCell);
             row.appendChild(taskCell);
             tableBody.appendChild(row);
@@ -288,56 +270,40 @@
     }
 
     function updateSheetValue(colType, value) {
-      const rowIndex = selectedCell.dataset.rowIndex;
-      const department = selectedCell.dataset.department;
-
-      console.log("SENDING TO SHEET:", { department, rowIndex, colType, value });
-
+      const { rowIndex, department } = selectedCell.dataset;
       fetch(apiUrlUpdateCell, {
         method: "POST",
-        body: JSON.stringify({
-          department: department,
-          rowIndex: rowIndex,
-          colType: colType,
-          value: value
-        }),
-        headers: {
-          "Content-Type": "application/json"
-        }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ department, rowIndex, colType, value })
       })
       .then(response => response.json())
-      .then(data => console.log("RESPONSE FROM SHEET:", data))
-      .catch(err => console.error("POST ERROR:", err));
+      .then(data => console.log("Updated:", data))
+      .catch(err => console.error("POST error:", err));
     }
 
     function closeModal(modalId) {
       document.getElementById(modalId).style.display = "none";
     }
 
-    document.getElementById("nameClose").addEventListener("click", function () {
-      closeModal("nameModal");
-    });
-    document.getElementById("taskClose").addEventListener("click", function () {
-      closeModal("taskModal");
-    });
+    document.getElementById("nameClose").onclick = () => closeModal("nameModal");
+    document.getElementById("taskClose").onclick = () => closeModal("taskModal");
 
     document.getElementById("nameSearch").addEventListener("input", function () {
       const filter = this.value.toLowerCase();
-      const items = document.querySelectorAll("#nameList li");
-      items.forEach(item => {
+      document.querySelectorAll("#nameList li").forEach(item => {
         item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
       });
     });
 
     document.getElementById("taskSearch").addEventListener("input", function () {
       const filter = this.value.toLowerCase();
-      const items = document.querySelectorAll("#taskList li");
-      items.forEach(item => {
+      document.querySelectorAll("#taskList li").forEach(item => {
         item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
       });
     });
 
     fetchAndDisplay();
+    setInterval(fetchAndDisplay, 60000); // Refresh every 60s
   </script>
 </body>
 </html>
