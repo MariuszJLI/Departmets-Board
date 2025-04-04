@@ -173,7 +173,7 @@
   </div>
 
   <script>
-    const proxyBase = "https://departments-board.glitch.me"; // Replace this with your Glitch app URL
+    const proxyBase = "https://departments-board.glitch.me"; // your Glitch proxy server
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
     const apiUrlUpdateCell = proxyBase;
@@ -204,7 +204,7 @@
         };
 
         for (const [key, values] of Object.entries(availableTasks)) {
-          const tableBody = document.getElementById(`${key}-table`).getElementsByTagName("tbody")[0];
+          const tableBody = document.getElementById(`${key}-table`).querySelector("tbody");
           tableBody.innerHTML = "";
           values.forEach(([name, task], index) => {
             const row = document.createElement("tr");
@@ -212,14 +212,18 @@
             const taskCell = document.createElement("td");
             nameCell.textContent = name;
             taskCell.textContent = task || "-";
-            nameCell.addEventListener("click", function () {
+            nameCell.addEventListener("click", () => {
               selectedCell = nameCell;
-              selectedCell.dataset = { rowIndex: index + 12, department: key, colType: "name" };
+              selectedCell.dataset.rowIndex = (index + 12).toString();
+              selectedCell.dataset.department = key;
+              selectedCell.dataset.colType = "name";
               document.getElementById("nameModal").style.display = "block";
             });
-            taskCell.addEventListener("click", function () {
+            taskCell.addEventListener("click", () => {
               selectedCell = taskCell;
-              selectedCell.dataset = { rowIndex: index + 12, department: key, colType: "task" };
+              selectedCell.dataset.rowIndex = (index + 12).toString();
+              selectedCell.dataset.department = key;
+              selectedCell.dataset.colType = "task";
               populateTaskModal(key);
               document.getElementById("taskModal").style.display = "block";
             });
@@ -234,7 +238,7 @@
         availableNames.forEach(name => {
           const li = document.createElement("li");
           li.textContent = name;
-          li.addEventListener("click", function () {
+          li.addEventListener("click", () => {
             if (selectedCell) {
               selectedCell.textContent = name;
               updateSheetValue("name", name);
@@ -258,7 +262,7 @@
       tasks.forEach(task => {
         const li = document.createElement("li");
         li.textContent = task;
-        li.addEventListener("click", function () {
+        li.addEventListener("click", () => {
           if (selectedCell) {
             selectedCell.textContent = task;
             updateSheetValue("task", task);
@@ -270,13 +274,20 @@
     }
 
     function updateSheetValue(colType, value) {
-      const { rowIndex, department } = selectedCell.dataset;
+      const rowIndex = selectedCell.dataset.rowIndex;
+      const department = selectedCell.dataset.department;
+
+      if (!rowIndex || isNaN(Number(rowIndex))) {
+        console.error("Invalid rowIndex:", rowIndex);
+        return;
+      }
+
       fetch(apiUrlUpdateCell, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ department, rowIndex, colType, value })
       })
-      .then(response => response.json())
+      .then(res => res.json())
       .then(data => console.log("Updated:", data))
       .catch(err => console.error("POST error:", err));
     }
