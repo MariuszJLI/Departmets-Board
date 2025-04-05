@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Department Schedule</title>
   <style>
-   body {
+    body {
       font-family: Arial, sans-serif;
       background: #000;
       color: white;
@@ -141,50 +141,44 @@
   <div class="departments">
     <div class="department">
       <h2>Distribution</h2>
-      <button onclick="showEmployeeModal('distribution')">Add Employee</button>
-      <button onclick="showTaskModal('distribution')">Add Task</button>
       <table id="distribution-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="department">
       <h2>Goods In</h2>
-      <button onclick="showEmployeeModal('goodsin')">Add Employee</button>
-      <button onclick="showTaskModal('goodsin')">Add Task</button>
       <table id="goodsin-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="department">
       <h2>Pallets</h2>
-      <button onclick="showEmployeeModal('pallets')">Add Employee</button>
-      <button onclick="showTaskModal('pallets')">Add Task</button>
       <table id="pallets-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 
-  <!-- Employee Modal -->
+  <!-- Modals -->
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
       <h2>Select an Employee</h2>
+      <input type="text" id="nameSearch" placeholder="Search names...">
       <ul class="options-list" id="nameList"></ul>
     </div>
   </div>
 
-  <!-- Task Modal -->
   <div id="taskModal" class="modal">
     <div class="modal-content">
       <span class="close" id="taskClose">&times;</span>
       <h2>Select a Task</h2>
+      <input type="text" id="taskSearch" placeholder="Search tasks...">
       <ul class="options-list" id="taskList"></ul>
     </div>
   </div>
 
   <script>
-    const proxyBase = "https://departments-board.glitch.me"; // Replace with your Glitch app URL
+    const proxyBase = "https://departments-board.glitch.me";
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
     const apiUrlUpdateCell = proxyBase;
 
     let selectedCell = null;
-    let selectedDepartment = null; // Store department
     let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
     let availableNames = [];
 
@@ -279,65 +273,14 @@
       });
     }
 
-    function showEmployeeModal(department) {
-      selectedDepartment = department;
-      const nameList = document.getElementById("nameList");
-      nameList.innerHTML = "";
-      availableNames.forEach(name => {
-        const li = document.createElement("li");
-        li.textContent = name;
-        li.addEventListener("click", () => {
-          assignEmployeeToDepartment(department, name);
-          closeModal("nameModal");
-        });
-        nameList.appendChild(li);
-      });
-      document.getElementById("nameModal").style.display = "block";
-    }
-
-    function showTaskModal(department) {
-      selectedDepartment = department;
-      const taskList = document.getElementById("taskList");
-      taskList.innerHTML = "";
-      const tasks = availableTaskNames[department] || [];
-      tasks.forEach(task => {
-        const li = document.createElement("li");
-        li.textContent = task;
-        li.addEventListener("click", () => {
-          assignTaskToDepartment(department, task);
-          closeModal("taskModal");
-        });
-        taskList.appendChild(li);
-      });
-      document.getElementById("taskModal").style.display = "block";
-    }
-
-    function assignEmployeeToDepartment(department, employee) {
-      const tableBody = document.getElementById(`${department}-table`).querySelector("tbody");
-      const row = document.createElement("tr");
-      const nameCell = document.createElement("td");
-      const taskCell = document.createElement("td");
-      nameCell.textContent = employee;
-      taskCell.textContent = "-";
-      row.appendChild(nameCell);
-      row.appendChild(taskCell);
-      tableBody.appendChild(row);
-      updateSheetValue("name", employee);
-    }
-
-    function assignTaskToDepartment(department, task) {
-      const tableBody = document.getElementById(`${department}-table`).querySelector("tbody");
-      const row = tableBody.querySelector("tr:last-child");
-      if (row) {
-        row.children[1].textContent = task;
-        updateSheetValue("task", task);
-      }
-    }
-
     function updateSheetValue(colType, value) {
-      const rowIndex = selectedCell ? selectedCell.dataset.rowIndex : null;
-      const department = selectedCell ? selectedCell.dataset.department : selectedDepartment;
-      if (!rowIndex || isNaN(Number(rowIndex))) return;
+      const rowIndex = selectedCell.dataset.rowIndex;
+      const department = selectedCell.dataset.department;
+
+      if (!rowIndex || isNaN(Number(rowIndex))) {
+        console.error("Invalid rowIndex:", rowIndex);
+        return;
+      }
 
       fetch(apiUrlUpdateCell, {
         method: "POST",
@@ -355,6 +298,20 @@
 
     document.getElementById("nameClose").onclick = () => closeModal("nameModal");
     document.getElementById("taskClose").onclick = () => closeModal("taskModal");
+
+    document.getElementById("nameSearch").addEventListener("input", function () {
+      const filter = this.value.toLowerCase();
+      document.querySelectorAll("#nameList li").forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
+    });
+
+    document.getElementById("taskSearch").addEventListener("input", function () {
+      const filter = this.value.toLowerCase();
+      document.querySelectorAll("#taskList li").forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
+    });
 
     fetchAndDisplay();
     setInterval(fetchAndDisplay, 60000); // Refresh every 60s
