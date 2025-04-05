@@ -160,12 +160,11 @@
     </div>
   </div>
 
-  <!-- Modals -->
+  <!-- Modals for selecting employee and task -->
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
       <h2>Select an Employee</h2>
-      <input type="text" id="nameSearch" placeholder="Search names...">
       <ul class="options-list" id="nameList"></ul>
     </div>
   </div>
@@ -174,7 +173,6 @@
     <div class="modal-content">
       <span class="close" id="taskClose">&times;</span>
       <h2>Select a Task</h2>
-      <input type="text" id="taskSearch" placeholder="Search tasks...">
       <ul class="options-list" id="taskList"></ul>
     </div>
   </div>
@@ -304,59 +302,51 @@
     }
 
     function addEmployee(department) {
-      const employeeName = prompt("Enter the new employee name:");
-      if (employeeName) {
-        fetch(apiUrlUpdateCell, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            department,
-            rowIndex: 12, // Adjust for the starting row
-            colType: "name",
-            value: employeeName
-          })
-        }).then(res => res.json()).then(data => {
-          console.log("Employee added:", data);
-          fetchAndDisplay(); // Refresh the table
-        }).catch(err => console.error("Error adding employee:", err));
-      }
+      // Fetch and display all employees from Google Sheet
+      fetch(apiUrlModalData)
+        .then(response => response.json())
+        .then(data => {
+          const employees = data.employees || [];
+          const nameList = document.getElementById("nameList");
+          nameList.innerHTML = "";
+          employees.forEach(employee => {
+            const li = document.createElement("li");
+            li.textContent = employee;
+            li.addEventListener("click", () => {
+              // Add selected employee to the sheet
+              updateSheetValue("name", employee);
+              closeModal("nameModal");
+            });
+            nameList.appendChild(li);
+          });
+          document.getElementById("nameModal").style.display = "block";
+        });
     }
 
     function addTask(department) {
-      const taskName = prompt("Enter the new task name:");
-      if (taskName) {
-        fetch(apiUrlUpdateCell, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            department,
-            rowIndex: 12, // Adjust for the starting row
-            colType: "task",
-            value: taskName
-          })
-        }).then(res => res.json()).then(data => {
-          console.log("Task added:", data);
-          fetchAndDisplay(); // Refresh the table
-        }).catch(err => console.error("Error adding task:", err));
-      }
+      // Fetch and display all tasks from Google Sheet
+      fetch(apiUrlModalData)
+        .then(response => response.json())
+        .then(data => {
+          const tasks = data[`${department}Tasks`] || [];
+          const taskList = document.getElementById("taskList");
+          taskList.innerHTML = "";
+          tasks.forEach(task => {
+            const li = document.createElement("li");
+            li.textContent = task;
+            li.addEventListener("click", () => {
+              // Add selected task to the sheet
+              updateSheetValue("task", task);
+              closeModal("taskModal");
+            });
+            taskList.appendChild(li);
+          });
+          document.getElementById("taskModal").style.display = "block";
+        });
     }
 
     document.getElementById("nameClose").onclick = () => closeModal("nameModal");
     document.getElementById("taskClose").onclick = () => closeModal("taskModal");
-
-    document.getElementById("nameSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      document.querySelectorAll("#nameList li").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
-      });
-    });
-
-    document.getElementById("taskSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      document.querySelectorAll("#taskList li").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
-      });
-    });
 
     fetchAndDisplay();
     setInterval(fetchAndDisplay, 60000); // Refresh every 60s
