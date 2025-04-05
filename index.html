@@ -5,11 +5,153 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Department Schedule</title>
   <style>
-    /* (styles unchanged) */
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: white;
+      padding: 20px;
+      margin: 0;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    header img {
+      height: 40px;
+    }
+    h1 {
+      text-align: center;
+      margin: 0;
+      font-size: 32px;
+    }
+    #datetime {
+      text-align: center;
+      font-size: 20px;
+      margin-top: 10px;
+    }
+    .departments {
+      display: flex;
+      justify-content: space-around;
+      gap: 20px;
+      flex-wrap: wrap;
+      max-width: 100%;
+    }
+    .department {
+      background: #F37021;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      flex: 1 1 30%;
+      min-width: 280px;
+      max-width: 400px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    h2 {
+      color: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      color: black;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #333;
+      color: white;
+    }
+    td {
+      background-color: #F37021;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+      padding-top: 60px;
+      overflow: auto;
+    }
+    .modal-content {
+      background-color: #ccc;
+      color: black;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 50%;
+    }
+    .modal-content input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      border: 1px solid #888;
+      border-radius: 4px;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .options-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    .options-list li {
+      padding: 8px;
+      cursor: pointer;
+      color: black;
+    }
+    .options-list li:hover {
+      background-color: #ddd;
+    }
   </style>
 </head>
 <body>
-  <!-- (header and department table code unchanged) -->
+  <header>
+    <img src="jli-logo.png" alt="JLI Logo" />
+    <h1>Daily Department Schedule</h1>
+    <div style="width: 40px;"></div>
+  </header>
+
+  <div id="datetime">Loading current date and time...</div>
+
+  <div class="departments">
+    <div class="department">
+      <h2>Distribution</h2>
+      <table id="distribution-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="department">
+      <h2>Goods In</h2>
+      <table id="goodsin-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="department">
+      <h2>Pallets</h2>
+      <table id="pallets-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
 
   <!-- Modals for Employee and Task -->
   <div id="nameModal" class="modal">
