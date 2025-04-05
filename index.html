@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Department Schedule</title>
   <style>
-    body {
+   body {
       font-family: Arial, sans-serif;
       background: #000;
       color: white;
@@ -159,7 +159,7 @@
     </div>
   </div>
 
-  <!-- Modals -->
+  <!-- Employee Modal -->
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
@@ -168,6 +168,7 @@
     </div>
   </div>
 
+  <!-- Task Modal -->
   <div id="taskModal" class="modal">
     <div class="modal-content">
       <span class="close" id="taskClose">&times;</span>
@@ -177,7 +178,7 @@
   </div>
 
   <script>
-    const proxyBase = "https://departments-board.glitch.me"; // your Glitch app URL
+    const proxyBase = "https://departments-board.glitch.me"; // Replace with your Glitch app URL
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
     const apiUrlUpdateCell = proxyBase;
