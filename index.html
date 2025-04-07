@@ -16,7 +16,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     header img {
       height: 40px;
@@ -177,6 +177,7 @@
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
     const apiUrlUpdateCell = proxyBase;
+    const apiUrlCounts = `${proxyBase}/?action=getCounts`;
 
     let selectedCell = null;
     let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
@@ -314,7 +315,30 @@
     });
 
     fetchAndDisplay();
-    setInterval(fetchAndDisplay, 60000); // Refresh every 60s
+
+    fetch(apiUrlCounts)
+      .then(res => res.json())
+      .then(data => {
+        const totalEl = document.createElement("div");
+        totalEl.textContent = `Total Employees: ${data.total}`;
+        totalEl.style.textAlign = "center";
+        totalEl.style.fontSize = "22px";
+        totalEl.style.marginBottom = "10px";
+        document.querySelector("header").insertAdjacentElement("afterend", totalEl);
+
+        const departments = ["distribution", "goodsin", "pallets"];
+        departments.forEach(dep => {
+          const depEl = document.getElementById(`${dep}-table`).closest(".department");
+          const countEl = document.createElement("div");
+          countEl.textContent = `${data[dep]} employees`;
+          countEl.style.fontWeight = "bold";
+          countEl.style.marginBottom = "8px";
+          depEl.insertBefore(countEl, depEl.querySelector("h2"));
+        });
+      })
+      .catch(console.error);
+
+    setInterval(fetchAndDisplay, 60000);
   </script>
 </body>
 </html>
