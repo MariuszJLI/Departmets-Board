@@ -53,18 +53,19 @@
     }
     h2 {
       color: white;
-    }
-    .controls {
       display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-bottom: 10px;
+      justify-content: space-between;
+      align-items: center;
     }
-    .controls button {
-      padding: 4px 8px;
-      font-size: 16px;
-      font-weight: bold;
+    h2 button {
+      background: #222;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
       cursor: pointer;
+      font-weight: bold;
     }
     table {
       width: 100%;
@@ -92,8 +93,9 @@
     }
     .delete-button {
       color: red;
-      font-weight: bold;
       cursor: pointer;
+      margin-left: 10px;
+      font-weight: bold;
     }
     .modal {
       display: none;
@@ -159,24 +161,10 @@
   <div id="datetime">Loading current date and time...</div>
 
   <div class="departments">
-    <div class="department" id="distribution">
-      <div class="controls"><button onclick="addRow('distribution')">+</button></div>
-      <h2>Distribution</h2>
-      <table id="distribution-table"><thead><tr><th>Employee</th><th>Task</th><th></th></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="department" id="goodsin">
-      <div class="controls"><button onclick="addRow('goodsin')">+</button></div>
-      <h2>Goods In</h2>
-      <table id="goodsin-table"><thead><tr><th>Employee</th><th>Task</th><th></th></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="department" id="pallets">
-      <div class="controls"><button onclick="addRow('pallets')">+</button></div>
-      <h2>Pallets</h2>
-      <table id="pallets-table"><thead><tr><th>Employee</th><th>Task</th><th></th></tr></thead><tbody></tbody></table>
-    </div>
+    <!-- Departments will render here -->
   </div>
 
-  <!-- Modals (unchanged) -->
+  <!-- Modals -->
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
@@ -199,7 +187,7 @@
     const proxyBase = "https://departments-board.glitch.me";
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
-    const apiUrlUpdate = proxyBase;
+    const apiUrlUpdateCell = proxyBase;
     const apiUrlCounts = `${proxyBase}/?action=getCounts`;
 
     let selectedCell = null;
@@ -207,128 +195,155 @@
     let availableNames = [];
 
     async function fetchAndDisplay() {
-      const resMain = await fetch(apiUrlMainData);
-      const dataMain = await resMain.json();
-      const resModal = await fetch(apiUrlModalData);
-      const dataModal = await resModal.json();
+      try {
+        const [resMain, resModal] = await Promise.all([
+          fetch(apiUrlMainData),
+          fetch(apiUrlModalData)
+        ]);
+        const dataMain = await resMain.json();
+        const dataModal = await resModal.json();
 
-      availableNames = dataModal.employees || [];
-      availableTaskNames = {
-        distribution: dataModal.distributionTasks || [],
-        goodsin: dataModal.goodsInTasks || [],
-        pallets: dataModal.palletsTasks || []
-      };
-
-      const departments = { distribution: dataMain.distribution, goodsin: dataMain.goodsin, pallets: dataMain.pallets };
-
-      for (const [dep, list] of Object.entries(departments)) {
-        const tbody = document.querySelector(`#${dep}-table tbody`);
-        tbody.innerHTML = "";
-        list.forEach(([name, task], i) => {
-          const rowIndex = i + 12;
-          const row = document.createElement("tr");
-
-          const nameTd = document.createElement("td");
-          nameTd.textContent = name;
-          nameTd.dataset = { rowIndex, department: dep, colType: "name" };
-          nameTd.onclick = () => openModal(nameTd, "name");
-
-          const taskTd = document.createElement("td");
-          taskTd.textContent = task;
-          taskTd.dataset = { rowIndex, department: dep, colType: "task" };
-          taskTd.onclick = () => openModal(taskTd, "task");
-
-          const delTd = document.createElement("td");
-          delTd.innerHTML = '<span class="delete-button">&minus;</span>';
-          delTd.onclick = () => deleteRow(dep, rowIndex);
-
-          row.append(nameTd, taskTd, delTd);
-          tbody.appendChild(row);
-        });
-      }
-
-      document.getElementById("nameList").innerHTML = "";
-      availableNames.forEach(name => {
-        const li = document.createElement("li");
-        li.textContent = name;
-        li.onclick = () => {
-          if (selectedCell) {
-            selectedCell.textContent = name;
-            updateSheet("name", name);
-            closeModal("nameModal");
-          }
+        availableNames = dataModal.employees || [];
+        availableTaskNames = {
+          distribution: dataModal.distributionTasks || [],
+          goodsin: dataModal.goodsInTasks || [],
+          pallets: dataModal.palletsTasks || []
         };
-        document.getElementById("nameList").appendChild(li);
-      });
 
-      document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+        const container = document.querySelector(".departments");
+        container.innerHTML = "";
+
+        ["distribution", "goodsin", "pallets"].forEach(dep => {
+          const box = document.createElement("div");
+          box.className = "department";
+          box.innerHTML = `
+            <h2>${dep.charAt(0).toUpperCase() + dep.slice(1)}
+              <button onclick="addRow('${dep}')">+</button>
+            </h2>
+            <table id="${dep}-table">
+              <thead><tr><th>Employee</th><th>Task</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>`;
+          container.appendChild(box);
+
+          const body = box.querySelector("tbody");
+          (dataMain[dep] || []).forEach(([name, task], i) => {
+            const row = document.createElement("tr");
+            const nameCell = document.createElement("td");
+            const taskCell = document.createElement("td");
+            const delCell = document.createElement("td");
+            const rowIndex = i + 12;
+
+            nameCell.textContent = name || "-";
+            nameCell.addEventListener("click", () => {
+              selectedCell = nameCell;
+              Object.assign(nameCell.dataset, { rowIndex, department: dep, colType: "name" });
+              document.getElementById("nameModal").style.display = "block";
+            });
+
+            taskCell.textContent = task || "-";
+            taskCell.addEventListener("click", () => {
+              selectedCell = taskCell;
+              Object.assign(taskCell.dataset, { rowIndex, department: dep, colType: "task" });
+              populateTaskModal(dep);
+              document.getElementById("taskModal").style.display = "block";
+            });
+
+            const delBtn = document.createElement("span");
+            delBtn.className = "delete-button";
+            delBtn.textContent = "–";
+            delBtn.onclick = () => {
+              if (confirm("Delete this row?")) deleteRow(dep, rowIndex);
+            };
+            delCell.appendChild(delBtn);
+
+            row.append(nameCell, taskCell, delCell);
+            body.appendChild(row);
+          });
+        });
+
+        const nameList = document.getElementById("nameList");
+        nameList.innerHTML = "";
+        availableNames.forEach(name => {
+          const li = document.createElement("li");
+          li.textContent = name;
+          li.onclick = () => {
+            if (selectedCell) {
+              selectedCell.textContent = name;
+              updateSheetValue("name", name);
+              closeModal("nameModal");
+            }
+          };
+          nameList.appendChild(li);
+        });
+
+        document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+      } catch (err) {
+        console.error("Error loading data:", err);
+      }
     }
 
-    function openModal(cell, type) {
-      selectedCell = cell;
-      selectedCell.dataset.colType = type;
-      document.getElementById(`${type}Modal`).style.display = "block";
-      if (type === "task") populateTaskModal(cell.dataset.department);
-    }
-
-    function updateSheet(colType, value) {
-      const { department, rowIndex } = selectedCell.dataset;
-      fetch(apiUrlUpdate, {
+    function updateSheetValue(colType, value) {
+      const { rowIndex, department } = selectedCell.dataset;
+      fetch(apiUrlUpdateCell, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "updateCell", department, rowIndex, colType, value })
-      });
+        body: JSON.stringify({ department, rowIndex, colType, value })
+      }).then(() => fetchAndDisplay());
     }
 
     function addRow(department) {
-      fetch(apiUrlUpdate, {
+      fetch(apiUrlUpdateCell, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "addRow", department })
-      }).then(fetchAndDisplay);
+        body: JSON.stringify({ department, action: "addRow" })
+      }).then(() => fetchAndDisplay());
     }
 
     function deleteRow(department, rowIndex) {
-      if (confirm("Delete this entry?")) {
-        fetch(apiUrlUpdate, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "deleteRow", department, rowIndex })
-        }).then(fetchAndDisplay);
-      }
+      fetch(apiUrlUpdateCell, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ department, rowIndex, action: "deleteRow" })
+      }).then(() => fetchAndDisplay());
+    }
+
+    function populateTaskModal(department) {
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+      (availableTaskNames[department] || []).forEach(task => {
+        const li = document.createElement("li");
+        li.textContent = task;
+        li.onclick = () => {
+          if (selectedCell) {
+            selectedCell.textContent = task;
+            updateSheetValue("task", task);
+            closeModal("taskModal");
+          }
+        };
+        taskList.appendChild(li);
+      });
     }
 
     function closeModal(id) {
       document.getElementById(id).style.display = "none";
     }
 
-    function populateTaskModal(dep) {
-      const list = document.getElementById("taskList");
-      list.innerHTML = "";
-      availableTaskNames[dep].forEach(task => {
-        const li = document.createElement("li");
-        li.textContent = task;
-        li.onclick = () => {
-          if (selectedCell) {
-            selectedCell.textContent = task;
-            updateSheet("task", task);
-            closeModal("taskModal");
-          }
-        };
-        list.appendChild(li);
-      });
-    }
-
     document.getElementById("nameClose").onclick = () => closeModal("nameModal");
     document.getElementById("taskClose").onclick = () => closeModal("taskModal");
 
-    ["nameSearch", "taskSearch"].forEach(id => {
-      document.getElementById(id).addEventListener("input", function () {
-        const filter = this.value.toLowerCase();
-        document.querySelectorAll(`#${id.replace("Search", "List")} li`).forEach(item => {
-          item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
-        });
-      });
+    document.getElementById("nameSearch").addEventListener("input", function () {
+      const filter = this.value.toLowerCase();
+      document.querySelectorAll("#nameList li").forEach(item =>
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none"
+      );
+    });
+
+    document.getElementById("taskSearch").addEventListener("input", function () {
+      const filter = this.value.toLowerCase();
+      document.querySelectorAll("#taskList li").forEach(item =>
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none"
+      );
     });
 
     fetchAndDisplay();
