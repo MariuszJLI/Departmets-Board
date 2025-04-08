@@ -51,21 +51,9 @@
       max-width: 400px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
-    h2 {
-      color: white;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    h2 button {
-      background: #222;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      cursor: pointer;
+    .count {
       font-weight: bold;
+      margin-bottom: 8px;
     }
     table {
       width: 100%;
@@ -94,8 +82,17 @@
     .delete-button {
       color: red;
       cursor: pointer;
-      margin-left: 10px;
       font-weight: bold;
+    }
+    .add-row-button {
+      background: #222;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 10px 0 0;
     }
     .modal {
       display: none;
@@ -160,11 +157,9 @@
 
   <div id="datetime">Loading current date and time...</div>
 
-  <div class="departments">
-    <!-- Departments will render here -->
-  </div>
+  <div class="departments"></div>
 
-  <!-- Modals -->
+  <!-- Modals (same) -->
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
@@ -187,7 +182,7 @@
     const proxyBase = "https://departments-board.glitch.me";
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
-    const apiUrlUpdateCell = proxyBase;
+    const apiUrlUpdate = proxyBase;
     const apiUrlCounts = `${proxyBase}/?action=getCounts`;
 
     let selectedCell = null;
@@ -195,129 +190,140 @@
     let availableNames = [];
 
     async function fetchAndDisplay() {
-      try {
-        const [resMain, resModal] = await Promise.all([
-          fetch(apiUrlMainData),
-          fetch(apiUrlModalData)
-        ]);
-        const dataMain = await resMain.json();
-        const dataModal = await resModal.json();
+      const [resMain, resModal, resCounts] = await Promise.all([
+        fetch(apiUrlMainData),
+        fetch(apiUrlModalData),
+        fetch(apiUrlCounts)
+      ]);
+      const dataMain = await resMain.json();
+      const dataModal = await resModal.json();
+      const dataCounts = await resCounts.json();
 
-        availableNames = dataModal.employees || [];
-        availableTaskNames = {
-          distribution: dataModal.distributionTasks || [],
-          goodsin: dataModal.goodsInTasks || [],
-          pallets: dataModal.palletsTasks || []
-        };
+      availableNames = dataModal.employees || [];
+      availableTaskNames = {
+        distribution: dataModal.distributionTasks || [],
+        goodsin: dataModal.goodsInTasks || [],
+        pallets: dataModal.palletsTasks || []
+      };
 
-        const container = document.querySelector(".departments");
-        container.innerHTML = "";
+      const departments = { distribution: dataMain.distribution, goodsin: dataMain.goodsin, pallets: dataMain.pallets };
 
-        ["distribution", "goodsin", "pallets"].forEach(dep => {
-          const box = document.createElement("div");
-          box.className = "department";
-          box.innerHTML = `
-            <h2>${dep.charAt(0).toUpperCase() + dep.slice(1)}
-              <button onclick="addRow('${dep}')">+</button>
-            </h2>
-            <table id="${dep}-table">
-              <thead><tr><th>Employee</th><th>Task</th><th></th></tr></thead>
-              <tbody></tbody>
-            </table>`;
-          container.appendChild(box);
+      const container = document.querySelector(".departments");
+      container.innerHTML = "";
 
-          const body = box.querySelector("tbody");
-          (dataMain[dep] || []).forEach(([name, task], i) => {
-            const row = document.createElement("tr");
-            const nameCell = document.createElement("td");
-            const taskCell = document.createElement("td");
-            const delCell = document.createElement("td");
-            const rowIndex = i + 12;
+      for (const [dep, list] of Object.entries(departments)) {
+        const box = document.createElement("div");
+        box.className = "department";
 
-            nameCell.textContent = name || "-";
-            nameCell.addEventListener("click", () => {
-              selectedCell = nameCell;
-              Object.assign(nameCell.dataset, { rowIndex, department: dep, colType: "name" });
-              document.getElementById("nameModal").style.display = "block";
-            });
+        const countEl = document.createElement("div");
+        countEl.className = "count";
+        countEl.textContent = `${dataCounts[dep]} employees`;
+        box.appendChild(countEl);
 
-            taskCell.textContent = task || "-";
-            taskCell.addEventListener("click", () => {
-              selectedCell = taskCell;
-              Object.assign(taskCell.dataset, { rowIndex, department: dep, colType: "task" });
-              populateTaskModal(dep);
-              document.getElementById("taskModal").style.display = "block";
-            });
+        const title = document.createElement("h2");
+        title.textContent = dep.charAt(0).toUpperCase() + dep.slice(1);
+        box.appendChild(title);
 
-            const delBtn = document.createElement("span");
-            delBtn.className = "delete-button";
-            delBtn.textContent = "–";
-            delBtn.onclick = () => {
-              if (confirm("Delete this row?")) deleteRow(dep, rowIndex);
-            };
-            delCell.appendChild(delBtn);
+        const table = document.createElement("table");
+        table.innerHTML = "<thead><tr><th>Employee</th><th>Task</th><th></th></tr></thead><tbody></tbody>";
+        const tbody = table.querySelector("tbody");
 
-            row.append(nameCell, taskCell, delCell);
-            body.appendChild(row);
-          });
+        list.forEach(([name, task], i) => {
+          const rowIndex = i + 12;
+          const row = document.createElement("tr");
+
+          const nameCell = document.createElement("td");
+          nameCell.textContent = name;
+          nameCell.dataset = { rowIndex, department: dep, colType: "name" };
+          nameCell.onclick = () => openModal(nameCell, "name");
+
+          const taskCell = document.createElement("td");
+          taskCell.textContent = task;
+          taskCell.dataset = { rowIndex, department: dep, colType: "task" };
+          taskCell.onclick = () => openModal(taskCell, "task");
+
+          const delTd = document.createElement("td");
+          delTd.innerHTML = '<span class="delete-button">&minus;</span>';
+          delTd.onclick = () => deleteRow(dep, rowIndex);
+
+          row.append(nameCell, taskCell, delTd);
+          tbody.appendChild(row);
         });
 
-        const nameList = document.getElementById("nameList");
-        nameList.innerHTML = "";
-        availableNames.forEach(name => {
-          const li = document.createElement("li");
-          li.textContent = name;
-          li.onclick = () => {
-            if (selectedCell) {
-              selectedCell.textContent = name;
-              updateSheetValue("name", name);
-              closeModal("nameModal");
-            }
-          };
-          nameList.appendChild(li);
-        });
+        const addRow = document.createElement("tr");
+        addRow.innerHTML = `<td colspan="3" style="text-align:center;"><button class='add-row-button' onclick="addRow('${dep}')">+ Add Row</button></td>`;
+        tbody.appendChild(addRow);
 
-        document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
-      } catch (err) {
-        console.error("Error loading data:", err);
+        box.appendChild(table);
+        container.appendChild(box);
       }
+
+      const nameList = document.getElementById("nameList");
+      nameList.innerHTML = "";
+      availableNames.forEach(name => {
+        const li = document.createElement("li");
+        li.textContent = name;
+        li.onclick = () => {
+          if (selectedCell) {
+            selectedCell.textContent = name;
+            updateSheet("name", name);
+            closeModal("nameModal");
+          }
+        };
+        nameList.appendChild(li);
+      });
+
+      document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
     }
 
-    function updateSheetValue(colType, value) {
-      const { rowIndex, department } = selectedCell.dataset;
-      fetch(apiUrlUpdateCell, {
+    function openModal(cell, type) {
+      selectedCell = cell;
+      selectedCell.dataset.colType = type;
+      document.getElementById(`${type}Modal`).style.display = "block";
+      if (type === "task") populateTaskModal(cell.dataset.department);
+    }
+
+    function updateSheet(colType, value) {
+      const { department, rowIndex } = selectedCell.dataset;
+      fetch(apiUrlUpdate, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ department, rowIndex, colType, value })
-      }).then(() => fetchAndDisplay());
+        body: JSON.stringify({ action: "updateCell", department, rowIndex, colType, value })
+      }).then(fetchAndDisplay);
     }
 
     function addRow(department) {
-      fetch(apiUrlUpdateCell, {
+      fetch(apiUrlUpdate, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ department, action: "addRow" })
-      }).then(() => fetchAndDisplay());
+        body: JSON.stringify({ action: "addRow", department })
+      }).then(fetchAndDisplay);
     }
 
     function deleteRow(department, rowIndex) {
-      fetch(apiUrlUpdateCell, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ department, rowIndex, action: "deleteRow" })
-      }).then(() => fetchAndDisplay());
+      if (confirm("Delete both employee and task from this row?")) {
+        fetch(apiUrlUpdate, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "deleteRow", department, rowIndex })
+        }).then(fetchAndDisplay);
+      }
     }
 
-    function populateTaskModal(department) {
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = "none";
+    }
+
+    function populateTaskModal(dep) {
       const taskList = document.getElementById("taskList");
       taskList.innerHTML = "";
-      (availableTaskNames[department] || []).forEach(task => {
+      availableTaskNames[dep].forEach(task => {
         const li = document.createElement("li");
         li.textContent = task;
         li.onclick = () => {
           if (selectedCell) {
             selectedCell.textContent = task;
-            updateSheetValue("task", task);
+            updateSheet("task", task);
             closeModal("taskModal");
           }
         };
@@ -325,25 +331,21 @@
       });
     }
 
-    function closeModal(id) {
-      document.getElementById(id).style.display = "none";
-    }
-
     document.getElementById("nameClose").onclick = () => closeModal("nameModal");
     document.getElementById("taskClose").onclick = () => closeModal("taskModal");
 
     document.getElementById("nameSearch").addEventListener("input", function () {
       const filter = this.value.toLowerCase();
-      document.querySelectorAll("#nameList li").forEach(item =>
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none"
-      );
+      document.querySelectorAll("#nameList li").forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
     });
 
     document.getElementById("taskSearch").addEventListener("input", function () {
       const filter = this.value.toLowerCase();
-      document.querySelectorAll("#taskList li").forEach(item =>
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none"
-      );
+      document.querySelectorAll("#taskList li").forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
     });
 
     fetchAndDisplay();
