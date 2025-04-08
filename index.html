@@ -1,3 +1,4 @@
+<!-- Full HTML UI updated to support separate + for employee/task, fix task modal bug, and restore Total Count -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,67 +85,19 @@
       cursor: pointer;
       font-weight: bold;
     }
-    .add-row-button {
+    .add-row-buttons {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .add-row-buttons button {
       background: #222;
       color: white;
       border: none;
       border-radius: 4px;
-      padding: 6px 12px;
+      padding: 6px 10px;
+      margin: 0 4px;
       font-size: 14px;
       cursor: pointer;
-      margin: 10px 0 0;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.4);
-      padding-top: 60px;
-      overflow: auto;
-    }
-    .modal-content {
-      background-color: #ccc;
-      color: black;
-      margin: 5% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 50%;
-    }
-    .modal-content input[type="text"] {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-      font-size: 16px;
-      border: 1px solid #888;
-      border-radius: 4px;
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-    }
-    .close:hover,
-    .close:focus {
-      color: black;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    .options-list {
-      list-style-type: none;
-      padding: 0;
-    }
-    .options-list li {
-      padding: 8px;
-      cursor: pointer;
-      color: black;
-    }
-    .options-list li:hover {
-      background-color: #ddd;
     }
   </style>
 </head>
@@ -154,12 +107,11 @@
     <h1>Daily Department Schedule</h1>
     <div style="width: 40px;"></div>
   </header>
-
+  <div id="total-count" style="text-align:center;font-size:22px;margin-bottom:10px;"></div>
   <div id="datetime">Loading current date and time...</div>
 
   <div class="departments"></div>
 
-  <!-- Modals (same) -->
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
@@ -168,7 +120,6 @@
       <ul class="options-list" id="nameList"></ul>
     </div>
   </div>
-
   <div id="taskModal" class="modal">
     <div class="modal-content">
       <span class="close" id="taskClose">&times;</span>
@@ -182,12 +133,12 @@
     const proxyBase = "https://departments-board.glitch.me";
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
-    const apiUrlUpdate = proxyBase;
     const apiUrlCounts = `${proxyBase}/?action=getCounts`;
+    const apiPost = proxyBase;
 
     let selectedCell = null;
-    let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
     let availableNames = [];
+    let availableTaskNames = {};
 
     async function fetchAndDisplay() {
       const [resMain, resModal, resCounts] = await Promise.all([
@@ -206,32 +157,28 @@
         pallets: dataModal.palletsTasks || []
       };
 
-      const departments = { distribution: dataMain.distribution, goodsin: dataMain.goodsin, pallets: dataMain.pallets };
+      document.getElementById("total-count").textContent = `Total Employees: ${dataCounts.total}`;
 
+      const departments = { distribution: dataMain.distribution, goodsin: dataMain.goodsin, pallets: dataMain.pallets };
       const container = document.querySelector(".departments");
       container.innerHTML = "";
 
       for (const [dep, list] of Object.entries(departments)) {
         const box = document.createElement("div");
         box.className = "department";
-
-        const countEl = document.createElement("div");
-        countEl.className = "count";
-        countEl.textContent = `${dataCounts[dep]} employees`;
-        box.appendChild(countEl);
-
-        const title = document.createElement("h2");
-        title.textContent = dep.charAt(0).toUpperCase() + dep.slice(1);
-        box.appendChild(title);
-
-        const table = document.createElement("table");
-        table.innerHTML = "<thead><tr><th>Employee</th><th>Task</th><th></th></tr></thead><tbody></tbody>";
-        const tbody = table.querySelector("tbody");
+        box.innerHTML = `
+          <div class="count">${dataCounts[dep]} employees</div>
+          <table><thead><tr><th>Employee</th><th>Task</th><th></th></tr></thead><tbody></tbody></table>
+          <div class="add-row-buttons">
+            <button onclick="addRow('${dep}', 'name')">+ Employee</button>
+            <button onclick="addRow('${dep}', 'task')">+ Task</button>
+          </div>
+        `;
+        const tbody = box.querySelector("tbody");
 
         list.forEach(([name, task], i) => {
           const rowIndex = i + 12;
           const row = document.createElement("tr");
-
           const nameCell = document.createElement("td");
           nameCell.textContent = name;
           nameCell.dataset = { rowIndex, department: dep, colType: "name" };
@@ -242,111 +189,110 @@
           taskCell.dataset = { rowIndex, department: dep, colType: "task" };
           taskCell.onclick = () => openModal(taskCell, "task");
 
-          const delTd = document.createElement("td");
-          delTd.innerHTML = '<span class="delete-button">&minus;</span>';
-          delTd.onclick = () => deleteRow(dep, rowIndex);
+          const delCell = document.createElement("td");
+          const btn = document.createElement("span");
+          btn.className = "delete-button";
+          btn.textContent = "–";
+          btn.onclick = () => deleteRow(dep, rowIndex);
+          delCell.appendChild(btn);
 
-          row.append(nameCell, taskCell, delTd);
+          row.append(nameCell, taskCell, delCell);
           tbody.appendChild(row);
         });
 
-        const addRow = document.createElement("tr");
-        addRow.innerHTML = `<td colspan="3" style="text-align:center;"><button class='add-row-button' onclick="addRow('${dep}')">+ Add Row</button></td>`;
-        tbody.appendChild(addRow);
-
-        box.appendChild(table);
         container.appendChild(box);
       }
 
-      const nameList = document.getElementById("nameList");
-      nameList.innerHTML = "";
+      renderNameList();
+      document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+    }
+
+    function renderNameList() {
+      const ul = document.getElementById("nameList");
+      ul.innerHTML = "";
       availableNames.forEach(name => {
         const li = document.createElement("li");
         li.textContent = name;
         li.onclick = () => {
           if (selectedCell) {
             selectedCell.textContent = name;
-            updateSheet("name", name);
+            updateCell("name", name);
             closeModal("nameModal");
           }
         };
-        nameList.appendChild(li);
+        ul.appendChild(li);
       });
+    }
 
-      document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+    function populateTaskModal(dep) {
+      const list = availableTaskNames[dep] || [];
+      const ul = document.getElementById("taskList");
+      ul.innerHTML = "";
+      list.forEach(task => {
+        const li = document.createElement("li");
+        li.textContent = task;
+        li.onclick = () => {
+          if (selectedCell) {
+            selectedCell.textContent = task;
+            updateCell("task", task);
+            closeModal("taskModal");
+          }
+        };
+        ul.appendChild(li);
+      });
     }
 
     function openModal(cell, type) {
       selectedCell = cell;
       selectedCell.dataset.colType = type;
-      document.getElementById(`${type}Modal`).style.display = "block";
       if (type === "task") populateTaskModal(cell.dataset.department);
+      document.getElementById(type + "Modal").style.display = "block";
     }
 
-    function updateSheet(colType, value) {
-      const { department, rowIndex } = selectedCell.dataset;
-      fetch(apiUrlUpdate, {
+    function updateCell(colType, value) {
+      const { rowIndex, department } = selectedCell.dataset;
+      fetch(apiPost, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "updateCell", department, rowIndex, colType, value })
       }).then(fetchAndDisplay);
     }
 
-    function addRow(department) {
-      fetch(apiUrlUpdate, {
+    function addRow(department, colType) {
+      fetch(apiPost, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "addRow", department })
+        body: JSON.stringify({ action: "addRow", department, colType })
       }).then(fetchAndDisplay);
     }
 
     function deleteRow(department, rowIndex) {
-      if (confirm("Delete both employee and task from this row?")) {
-        fetch(apiUrlUpdate, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "deleteRow", department, rowIndex })
-        }).then(fetchAndDisplay);
-      }
+      fetch(apiPost, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "deleteRow", department, rowIndex })
+      }).then(fetchAndDisplay);
     }
 
-    function closeModal(modalId) {
-      document.getElementById(modalId).style.display = "none";
-    }
-
-    function populateTaskModal(dep) {
-      const taskList = document.getElementById("taskList");
-      taskList.innerHTML = "";
-      availableTaskNames[dep].forEach(task => {
-        const li = document.createElement("li");
-        li.textContent = task;
-        li.onclick = () => {
-          if (selectedCell) {
-            selectedCell.textContent = task;
-            updateSheet("task", task);
-            closeModal("taskModal");
-          }
-        };
-        taskList.appendChild(li);
-      });
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
     }
 
     document.getElementById("nameClose").onclick = () => closeModal("nameModal");
     document.getElementById("taskClose").onclick = () => closeModal("taskModal");
 
-    document.getElementById("nameSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      document.querySelectorAll("#nameList li").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+    document.getElementById("nameSearch").oninput = function () {
+      const val = this.value.toLowerCase();
+      document.querySelectorAll("#nameList li").forEach(li => {
+        li.style.display = li.textContent.toLowerCase().includes(val) ? "" : "none";
       });
-    });
-
-    document.getElementById("taskSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      document.querySelectorAll("#taskList li").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+    };
+    document.getElementById("taskSearch").oninput = function () {
+      const val = this.value.toLowerCase();
+      document.querySelectorAll("#taskList li").forEach(li => {
+        li.style.display = li.textContent.toLowerCase().includes(val) ? "" : "none";
       });
-    });
+    };
 
     fetchAndDisplay();
     setInterval(fetchAndDisplay, 60000);
