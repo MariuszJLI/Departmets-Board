@@ -14,7 +14,6 @@
       transform: scale(0.75);
       transform-origin: top left;
       width: 133.33%;
-
     }
     header {
       display: flex;
@@ -30,7 +29,7 @@
       margin: 0;
       font-size: 32px;
     }
-    #datetime {
+    #datetime, #counts {
       text-align: center;
       font-size: 20px;
       margin-top: 10px;
@@ -147,6 +146,7 @@
   </header>
 
   <div id="datetime">Loading current date and time...</div>
+  <div id="counts">Loading employee counts...</div>
 
   <div class="departments">
     <div class="department">
@@ -183,9 +183,10 @@
   </div>
 
   <script>
-    const proxyBase = "https://departments-board.glitch.me"; // your Glitch proxy server
+    const proxyBase = "https://departments-board.glitch.me";
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
+    const apiUrlCountData = `${proxyBase}/?action=getCounts`;
     const apiUrlUpdateCell = proxyBase;
 
     let selectedCell = null;
@@ -194,11 +195,15 @@
 
     async function fetchAndDisplay() {
       try {
-        const resMainData = await fetch(apiUrlMainData);
-        const dataMain = await resMainData.json();
+        const [resMainData, resModalData, resCounts] = await Promise.all([
+          fetch(apiUrlMainData),
+          fetch(apiUrlModalData),
+          fetch(apiUrlCountData)
+        ]);
 
-        const resModalData = await fetch(apiUrlModalData);
+        const dataMain = await resMainData.json();
         const dataModal = await resModalData.json();
+        const dataCounts = await resCounts.json();
 
         const availableTasks = {
           distribution: dataMain.distribution || [],
@@ -212,6 +217,10 @@
           goodsin: dataModal.goodsInTasks || [],
           pallets: dataModal.palletsTasks || []
         };
+
+        // DISPLAY COUNTS
+        document.getElementById("counts").textContent = 
+          `Distribution: ${dataCounts.distribution} | Goods In: ${dataCounts.goodsin} | Pallets: ${dataCounts.pallets} | Total: ${dataCounts.total}`;
 
         for (const [key, values] of Object.entries(availableTasks)) {
           const tableContainer = document.getElementById(`${key}-table`).closest(".department");
