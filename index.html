@@ -29,10 +29,16 @@
       margin: 0;
       font-size: 32px;
     }
-    #datetime, #counts {
+    #datetime {
       text-align: center;
       font-size: 20px;
       margin-top: 10px;
+    }
+    #total-count {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      margin: 10px 0 20px;
     }
     .departments {
       display: flex;
@@ -51,20 +57,26 @@
       max-width: 400px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
-    h2 {
-      color: white;
+    .department h2 {
+      margin: 0;
+      font-size: 22px;
     }
-    .leader {
+    .leader-inline {
       font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      color: white;
+      margin-top: 4px;
+      font-weight: normal;
+    }
+    .emp-count {
+      font-size: 16px;
+      margin-top: 4px;
+      font-weight: normal;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       background-color: white;
       color: black;
+      margin-top: 10px;
     }
     th, td {
       padding: 8px;
@@ -146,19 +158,28 @@
   </header>
 
   <div id="datetime">Loading current date and time...</div>
-  <div id="counts">Loading employee counts...</div>
+  <div id="total-count">Loading total employee count...</div>
 
   <div class="departments">
     <div class="department">
-      <h2>Distribution</h2>
+      <div>
+        <h2>Distribution <span class="leader-inline" id="distribution-leader"></span></h2>
+        <div class="emp-count" id="distribution-count"></div>
+      </div>
       <table id="distribution-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="department">
-      <h2>Goods In</h2>
+      <div>
+        <h2>Goods In <span class="leader-inline" id="goodsin-leader"></span></h2>
+        <div class="emp-count" id="goodsin-count"></div>
+      </div>
       <table id="goodsin-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="department">
-      <h2>Pallets</h2>
+      <div>
+        <h2>Pallets <span class="leader-inline" id="pallets-leader"></span></h2>
+        <div class="emp-count" id="pallets-count"></div>
+      </div>
       <table id="pallets-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
@@ -218,27 +239,21 @@
           pallets: dataModal.palletsTasks || []
         };
 
-        // DISPLAY COUNTS
-        document.getElementById("counts").textContent = 
-          `Distribution: ${dataCounts.distribution} | Goods In: ${dataCounts.goodsin} | Pallets: ${dataCounts.pallets} | Total: ${dataCounts.total}`;
+        document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+        document.getElementById("total-count").textContent = `Total Employees: ${dataCounts.total}`;
 
-        for (const [key, values] of Object.entries(availableTasks)) {
-          const tableContainer = document.getElementById(`${key}-table`).closest(".department");
-          const tableBody = tableContainer.querySelector("tbody");
+        for (const key of Object.keys(availableTasks)) {
+          const tableBody = document.getElementById(`${key}-table`).querySelector("tbody");
           tableBody.innerHTML = "";
 
-          let leaderDiv = tableContainer.querySelector(".leader");
-          if (!leaderDiv) {
-            leaderDiv = document.createElement("div");
-            leaderDiv.className = "leader";
-            tableContainer.insertBefore(leaderDiv, tableContainer.querySelector("table"));
-          }
-          leaderDiv.textContent = `Leader: ${dataMain.leaders?.[key] || "N/A"}`;
+          document.getElementById(`${key}-leader`).textContent = `(Leader: ${dataMain.leaders?.[key] || "N/A"})`;
+          document.getElementById(`${key}-count`).textContent = `Employees: ${dataCounts[key] || 0}`;
 
-          values.forEach(([name, task], index) => {
+          availableTasks[key].forEach(([name, task], index) => {
             const row = document.createElement("tr");
             const nameCell = document.createElement("td");
             const taskCell = document.createElement("td");
+
             nameCell.textContent = name;
             taskCell.textContent = task || "-";
 
@@ -280,7 +295,6 @@
           nameList.appendChild(li);
         });
 
-        document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
       } catch (err) {
         console.error("Error loading data:", err);
         document.getElementById("datetime").textContent = "Failed to load data";
