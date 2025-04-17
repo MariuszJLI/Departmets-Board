@@ -196,166 +196,177 @@
       <ul class="options-list" id="taskList"></ul>
     </div>
   </div>
+    <script>
+  const proxyBase = "https://departments-board.glitch.me";
+  const apiUrlMainData = `${proxyBase}/?action=getMain`;
+  const apiUrlModalData = `${proxyBase}/?action=getModal`;
+  const apiUrlCountData = `${proxyBase}/?action=getCounts`;
+  const apiUrlUpdateCell = proxyBase;
 
-  <script>
-    const proxyBase = "https://departments-board.glitch.me";
-    const apiUrlMainData = `${proxyBase}/?action=getMain`;
-    const apiUrlModalData = `${proxyBase}/?action=getModal`;
-    const apiUrlCountData = `${proxyBase}/?action=getCounts`;
-    const apiUrlUpdateCell = proxyBase;
+  let selectedCell = null;
+  let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
+  let availableNames = [];
 
-    let selectedCell = null;
-    let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
-    let availableNames = [];
+  async function fetchAndDisplay() {
+    try {
+      const [resMain, resModal, resCounts] = await Promise.all([
+        fetch(apiUrlMainData),
+        fetch(apiUrlModalData),
+        fetch(apiUrlCountData)
+      ]);
+      const dataMain = await resMain.json();
+      const dataModal = await resModal.json();
+      const dataCounts = await resCounts.json();
 
-    async function fetchAndDisplay() {
-      try {
-        const [resMainData, resModalData, resCounts] = await Promise.all([
-          fetch(apiUrlMainData),
-          fetch(apiUrlModalData),
-          fetch(apiUrlCountData)
-        ]);
+      availableNames = dataModal.employees || [];
+      availableTaskNames = {
+        distribution: dataModal.distributionTasks || [],
+        goodsin: dataModal.goodsInTasks || [],
+        pallets: dataModal.palletsTasks || []
+      };
 
-        const dataMain = await resMainData.json();
-        const dataModal = await resModalData.json();
-        const dataCounts = await resCounts.json();
+      document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+      document.getElementById("total-count").textContent = `Total Employees: ${dataCounts.total}`;
 
-        const availableTasks = {
-          distribution: dataMain.distribution || [],
-          goodsin: dataMain.goodsin || [],
-          pallets: dataMain.pallets || []
-        };
+      for (const key of ["distribution", "goodsin", "pallets"]) {
+        const tableContainer = document.getElementById(`${key}-table`).closest(".department");
+        const table = document.getElementById(`${key}-table`);
+        const tbody = table.querySelector("tbody");
+        tbody.innerHTML = "";
 
-        availableNames = dataModal.employees || [];
-        availableTaskNames = {
-          distribution: dataModal.distributionTasks || [],
-          goodsin: dataModal.goodsInTasks || [],
-          pallets: dataModal.palletsTasks || []
-        };
+        document.getElementById(`${key}-leader`).textContent = `Leader: ${dataMain.leaders?.[key] || "N/A"}`;
+        document.getElementById(`${key}-count`).textContent = `Employees: ${dataCounts[key] || 0}`;
 
-        document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
-        document.getElementById("total-count").textContent = `Total Employees: ${dataCounts.total}`;
+        (dataMain[key] || []).forEach(([name, task], index) => {
+          const row = document.createElement("tr");
 
-        for (const key of Object.keys(availableTasks)) {
-          const tableBody = document.getElementById(`${key}-table`).querySelector("tbody");
-          tableBody.innerHTML = "";
+          const nameCell = document.createElement("td");
+          nameCell.textContent = name;
+          nameCell.addEventListener("click", () => openModal("name", key, index + 12, nameCell));
 
-          document.getElementById(`${key}-leader`).textContent = `Leader: ${dataMain.leaders?.[key] || "N/A"}`;
-          document.getElementById(`${key}-count`).textContent = `Employees: ${dataCounts[key] || 0}`;
+          const taskCell = document.createElement("td");
+          taskCell.textContent = task || "-";
+          taskCell.addEventListener("click", () => openModal("task", key, index + 12, taskCell));
 
-          availableTasks[key].forEach(([name, task], index) => {
-            const row = document.createElement("tr");
-            const nameCell = document.createElement("td");
-            const taskCell = document.createElement("td");
+          const delCell = document.createElement("td");
+          delCell.textContent = "–";
+          delCell.style.color = "red";
+          delCell.style.textAlign = "center";
+          delCell.style.cursor = "pointer";
+          delCell.onclick = () => deleteRow(key, index + 12);
 
-            nameCell.textContent = name;
-            taskCell.textContent = task || "-";
+          row.append(nameCell, taskCell, delCell);
+          tbody.appendChild(row);
+        });
 
-            nameCell.addEventListener("click", () => {
-              selectedCell = nameCell;
-              selectedCell.dataset.rowIndex = (index + 12).toString();
-              selectedCell.dataset.department = key;
-              selectedCell.dataset.colType = "name";
-              document.getElementById("nameModal").style.display = "block";
-            });
-
-            taskCell.addEventListener("click", () => {
-              selectedCell = taskCell;
-              selectedCell.dataset.rowIndex = (index + 12).toString();
-              selectedCell.dataset.department = key;
-              selectedCell.dataset.colType = "task";
-              populateTaskModal(key);
-              document.getElementById("taskModal").style.display = "block";
-            });
-
-            row.appendChild(nameCell);
-            row.appendChild(taskCell);
-            tableBody.appendChild(row);
-          });
+        // AddRow button
+        let addRowBtn = tableContainer.querySelector(".add-row-btn");
+        if (!addRowBtn) {
+          addRowBtn = document.createElement("button");
+          addRowBtn.textContent = "+ Add Row";
+          addRowBtn.className = "add-row-btn";
+          addRowBtn.style.marginTop = "10px";
+          addRowBtn.onclick = () => addRow(key);
+          tableContainer.appendChild(addRowBtn);
         }
-
-        const nameList = document.getElementById("nameList");
-        nameList.innerHTML = "";
-        availableNames.forEach(name => {
-          const li = document.createElement("li");
-          li.textContent = name;
-          li.addEventListener("click", () => {
-            if (selectedCell) {
-              selectedCell.textContent = name;
-              updateSheetValue("name", name);
-              closeModal("nameModal");
-            }
-          });
-          nameList.appendChild(li);
-        });
-
-      } catch (err) {
-        console.error("Error loading data:", err);
-        document.getElementById("datetime").textContent = "Failed to load data";
       }
-    }
 
-    function populateTaskModal(department) {
-      const taskList = document.getElementById("taskList");
-      taskList.innerHTML = "";
-      const tasks = availableTaskNames[department] || [];
-      tasks.forEach(task => {
+      const nameList = document.getElementById("nameList");
+      nameList.innerHTML = "";
+      availableNames.forEach(name => {
         const li = document.createElement("li");
-        li.textContent = task;
-        li.addEventListener("click", () => {
-          if (selectedCell) {
-            selectedCell.textContent = task;
-            updateSheetValue("task", task);
-            closeModal("taskModal");
-          }
-        });
-        taskList.appendChild(li);
+        li.textContent = name;
+        li.onclick = () => {
+          selectedCell.textContent = name;
+          updateSheetValue("name", name);
+          closeModal("nameModal");
+        };
+        nameList.appendChild(li);
       });
+
+    } catch (err) {
+      console.error("Error loading data:", err);
     }
+  }
 
-    function updateSheetValue(colType, value) {
-      const rowIndex = selectedCell.dataset.rowIndex;
-      const department = selectedCell.dataset.department;
+  function openModal(colType, dept, rowIndex, cellRef) {
+    selectedCell = cellRef;
+    selectedCell.dataset.department = dept;
+    selectedCell.dataset.rowIndex = rowIndex;
+    selectedCell.dataset.colType = colType;
 
-      if (!rowIndex || isNaN(Number(rowIndex))) {
-        console.error("Invalid rowIndex:", rowIndex);
-        return;
-      }
-
-      fetch(apiUrlUpdateCell, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ department, rowIndex, colType, value })
-      })
-      .then(res => res.json())
-      .then(data => console.log("Updated:", data))
-      .catch(err => console.error("POST error:", err));
+    if (colType === "name") {
+      document.getElementById("nameModal").style.display = "block";
+    } else {
+      populateTaskModal(dept);
+      document.getElementById("taskModal").style.display = "block";
     }
+  }
 
-    function closeModal(modalId) {
-      document.getElementById(modalId).style.display = "none";
-    }
-
-    document.getElementById("nameClose").onclick = () => closeModal("nameModal");
-    document.getElementById("taskClose").onclick = () => closeModal("taskModal");
-
-    document.getElementById("nameSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      document.querySelectorAll("#nameList li").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
-      });
+  function populateTaskModal(department) {
+    const taskList = document.getElementById("taskList");
+    taskList.innerHTML = "";
+    (availableTaskNames[department] || []).forEach(task => {
+      const li = document.createElement("li");
+      li.textContent = task;
+      li.onclick = () => {
+        selectedCell.textContent = task;
+        updateSheetValue("task", task);
+        closeModal("taskModal");
+      };
+      taskList.appendChild(li);
     });
+  }
 
-    document.getElementById("taskSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      document.querySelectorAll("#taskList li").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
-      });
+  function updateSheetValue(colType, value) {
+    const { department, rowIndex } = selectedCell.dataset;
+    fetch(apiUrlUpdateCell, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ department, rowIndex, colType, value })
+    }).then(() => fetchAndDisplay());
+  }
+
+  function addRow(department) {
+    fetch(apiUrlUpdateCell, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "addRow", department })
+    }).then(() => fetchAndDisplay());
+  }
+
+  function deleteRow(department, rowIndex) {
+    fetch(apiUrlUpdateCell, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deleteRow", department, rowIndex })
+    }).then(() => fetchAndDisplay());
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).style.display = "none";
+  }
+
+  document.getElementById("nameClose").onclick = () => closeModal("nameModal");
+  document.getElementById("taskClose").onclick = () => closeModal("taskModal");
+
+  document.getElementById("nameSearch").addEventListener("input", function () {
+    const filter = this.value.toLowerCase();
+    document.querySelectorAll("#nameList li").forEach(item => {
+      item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
     });
+  });
 
-    fetchAndDisplay();
-    setInterval(fetchAndDisplay, 60000);
-  </script>
+  document.getElementById("taskSearch").addEventListener("input", function () {
+    const filter = this.value.toLowerCase();
+    document.querySelectorAll("#taskList li").forEach(item => {
+      item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+    });
+  });
+
+  fetchAndDisplay();
+  setInterval(fetchAndDisplay, 60000);
+</script>
 </body>
 </html>
 
