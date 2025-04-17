@@ -11,15 +11,12 @@
       color: white;
       padding: 20px;
       margin: 0;
-      transform: scale(0.75);
-      transform-origin: top left;
-      width: 133.33%;
     }
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
     }
     header img {
       height: 40px;
@@ -52,6 +49,12 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
     h2 {
+      color: white;
+    }
+    .leader {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
       color: white;
     }
     table {
@@ -176,11 +179,10 @@
   </div>
 
   <script>
-    const proxyBase = "https://departments-board.glitch.me";
+    const proxyBase = "https://departments-board.glitch.me"; // your Glitch proxy server
     const apiUrlMainData = `${proxyBase}/?action=getMain`;
     const apiUrlModalData = `${proxyBase}/?action=getModal`;
     const apiUrlUpdateCell = proxyBase;
-    const apiUrlCounts = `${proxyBase}/?action=getCounts`;
 
     let selectedCell = null;
     let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
@@ -208,14 +210,25 @@
         };
 
         for (const [key, values] of Object.entries(availableTasks)) {
-          const tableBody = document.getElementById(`${key}-table`).querySelector("tbody");
+          const tableContainer = document.getElementById(`${key}-table`).closest(".department");
+          const tableBody = tableContainer.querySelector("tbody");
           tableBody.innerHTML = "";
+
+          let leaderDiv = tableContainer.querySelector(".leader");
+          if (!leaderDiv) {
+            leaderDiv = document.createElement("div");
+            leaderDiv.className = "leader";
+            tableContainer.insertBefore(leaderDiv, tableContainer.querySelector("table"));
+          }
+          leaderDiv.textContent = `Leader: ${dataMain.leaders?.[key] || "N/A"}`;
+
           values.forEach(([name, task], index) => {
             const row = document.createElement("tr");
             const nameCell = document.createElement("td");
             const taskCell = document.createElement("td");
             nameCell.textContent = name;
             taskCell.textContent = task || "-";
+
             nameCell.addEventListener("click", () => {
               selectedCell = nameCell;
               selectedCell.dataset.rowIndex = (index + 12).toString();
@@ -223,6 +236,7 @@
               selectedCell.dataset.colType = "name";
               document.getElementById("nameModal").style.display = "block";
             });
+
             taskCell.addEventListener("click", () => {
               selectedCell = taskCell;
               selectedCell.dataset.rowIndex = (index + 12).toString();
@@ -231,6 +245,7 @@
               populateTaskModal(key);
               document.getElementById("taskModal").style.display = "block";
             });
+
             row.appendChild(nameCell);
             row.appendChild(taskCell);
             tableBody.appendChild(row);
@@ -318,29 +333,6 @@
     });
 
     fetchAndDisplay();
-
-    fetch(apiUrlCounts)
-      .then(res => res.json())
-      .then(data => {
-        const totalEl = document.createElement("div");
-        totalEl.textContent = `Total Employees: ${data.total}`;
-        totalEl.style.textAlign = "center";
-        totalEl.style.fontSize = "22px";
-        totalEl.style.marginBottom = "10px";
-        document.querySelector("header").insertAdjacentElement("afterend", totalEl);
-
-        const departments = ["distribution", "goodsin", "pallets"];
-        departments.forEach(dep => {
-          const depEl = document.getElementById(`${dep}-table`).closest(".department");
-          const countEl = document.createElement("div");
-          countEl.textContent = `${data[dep]} employees`;
-          countEl.style.fontWeight = "bold";
-          countEl.style.marginBottom = "8px";
-          depEl.insertBefore(countEl, depEl.querySelector("h2"));
-        });
-      })
-      .catch(console.error);
-
     setInterval(fetchAndDisplay, 60000);
   </script>
 </body>
