@@ -61,15 +61,12 @@
       margin: 0;
       font-size: 22px;
     }
-    .leader-inline {
+    .leader-line, .emp-count {
       font-size: 16px;
-      margin-top: 4px;
-      font-weight: normal;
-    }
-    .emp-count {
-      font-size: 16px;
-      margin-top: 4px;
-      font-weight: normal;
+      font-weight: bold;
+      margin-top: 6px;
+      margin-bottom: 6px;
+      color: white;
     }
     table {
       width: 100%;
@@ -162,24 +159,21 @@
 
   <div class="departments">
     <div class="department">
-      <div>
-        <h2>Distribution <span class="leader-inline" id="distribution-leader"></span></h2>
-        <div class="emp-count" id="distribution-count"></div>
-      </div>
+      <h2>Distribution</h2>
+      <div class="leader-line" id="distribution-leader"></div>
+      <div class="emp-count" id="distribution-count"></div>
       <table id="distribution-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="department">
-      <div>
-        <h2>Goods In <span class="leader-inline" id="goodsin-leader"></span></h2>
-        <div class="emp-count" id="goodsin-count"></div>
-      </div>
+      <h2>Goods In</h2>
+      <div class="leader-line" id="goodsin-leader"></div>
+      <div class="emp-count" id="goodsin-count"></div>
       <table id="goodsin-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="department">
-      <div>
-        <h2>Pallets <span class="leader-inline" id="pallets-leader"></span></h2>
-        <div class="emp-count" id="pallets-count"></div>
-      </div>
+      <h2>Pallets</h2>
+      <div class="leader-line" id="pallets-leader"></div>
+      <div class="emp-count" id="pallets-count"></div>
       <table id="pallets-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
@@ -246,7 +240,7 @@
           const tableBody = document.getElementById(`${key}-table`).querySelector("tbody");
           tableBody.innerHTML = "";
 
-          document.getElementById(`${key}-leader`).textContent = `(Leader: ${dataMain.leaders?.[key] || "N/A"})`;
+          document.getElementById(`${key}-leader`).textContent = `Leader: ${dataMain.leaders?.[key] || "N/A"}`;
           document.getElementById(`${key}-count`).textContent = `Employees: ${dataCounts[key] || 0}`;
 
           availableTasks[key].forEach(([name, task], index) => {
@@ -364,3 +358,4 @@
   </script>
 </body>
 </html>
+
