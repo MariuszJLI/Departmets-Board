@@ -137,6 +137,20 @@
     }
     .close:hover {
       color: red;
+    .undo-msg {
+    margin-top: 10px;
+    font-size: 14px;
+    color: white;
+  }
+  .undo-msg button {
+    background: #F37021;
+    border: none;
+    color: white;
+    padding: 4px 8px;
+    font-weight: bold;
+    margin-left: 10px;
+    cursor: pointer;
+      
     }
   </style>
 </head>
@@ -171,8 +185,9 @@
         <thead><tr><th>Employee</th><th>Task</th><th>-</th></tr></thead>
         <tbody></tbody>
       </table>
+       <button id="distribution-add">+ Add Row</button>
+      <div class="undo-msg" id="distribution-msg"></div> <!-- ✅ message appears here -->
     </div>
-
     <div class="department">
       <h2>Pallets</h2>
       <div class="leader-line" id="pallets-leader"></div>
@@ -181,6 +196,8 @@
         <thead><tr><th>Employee</th><th>Task</th><th>-</th></tr></thead>
         <tbody></tbody>
       </table>
+       <button id="distribution-add">+ Add Row</button>
+      <div class="undo-msg" id="distribution-msg"></div> <!-- ✅ message appears here -->
     </div>
   </div>
 
@@ -354,11 +371,21 @@ function updateSheetValue(colType, value) {
 }
 
 function deleteRow(department, rowIndex) {
+  const row = document.querySelector(`#${department}-table tbody tr:nth-child(${rowIndex - 11})`);
+  if (!row) return;
+
+  const name = row.children[0]?.textContent || "";
+  const task = row.children[1]?.textContent || "";
+  lastDeleted = { department, rowIndex, name, task };
+
   fetch(apiUrlUpdateCell, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "deleteRow", department, rowIndex })
-  }).then(() => fetchAndDisplay());
+  }).then(() => {
+    fetchAndDisplay();
+    showUndoMessage(department);
+  });
 }
 
 function undoDelete() {
@@ -416,6 +443,14 @@ document.getElementById("taskClose").onclick = () => closeModal("taskModal");
 
 fetchAndDisplay();
 setInterval(fetchAndDisplay, 60000);
+
+function showUndoMessage(department) {
+  const el = document.getElementById(`${department}-msg`);
+  el.innerHTML = `✅ Row deleted. <button onclick="undoDelete()">Undo</button>`;
+  setTimeout(() => {
+    el.innerHTML = "";
+  }, 6000);
+  
  </script>
   <div id="snackbar">Row deleted. <button onclick="undoDelete()">Undo</button></div>
 </body>
