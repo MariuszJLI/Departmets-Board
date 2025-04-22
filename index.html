@@ -203,9 +203,9 @@
 
   <script>
   const proxyBase = "https://departments-board.glitch.me";
-  const apiUrlMainData = `${proxyBase}/?action=getMain`;
-  const apiUrlModalData = `${proxyBase}/?action=getModal`;
-  const apiUrlCountData = `${proxyBase}/?action=getCounts`;
+  const apiUrlMainData = ${proxyBase}/?action=getMain;
+  const apiUrlModalData = ${proxyBase}/?action=getModal;
+  const apiUrlCountData = ${proxyBase}/?action=getCounts;
   const apiUrlUpdateCell = proxyBase;
 
   let selectedCell = null;
@@ -231,14 +231,14 @@
     };
 
     document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
-    document.getElementById("total-count").textContent = `Total Employees: ${counts.total}`;
+    document.getElementById("total-count").textContent = Total Employees: ${counts.total};
 
     ["distribution", "goodsin", "pallets"].forEach(dept => {
-      const table = document.getElementById(`${dept}-table`);
+      const table = document.getElementById(${dept}-table);
       const tbody = table.querySelector("tbody");
       tbody.innerHTML = "";
-      document.getElementById(`${dept}-leader`).textContent = `Leader: ${main.leaders?.[dept] || "N/A"}`;
-      document.getElementById(`${dept}-count`).textContent = `Employees: ${counts[dept] || 0}`;
+      document.getElementById(${dept}-leader).textContent = Leader: ${main.leaders?.[dept] || "N/A"};
+      document.getElementById(${dept}-count).textContent = Employees: ${counts[dept] || 0};
 
       (main[dept] || []).forEach(([name, task], i) => {
         if (!name && !task) return;
@@ -264,10 +264,10 @@
         tbody.appendChild(row);
       });
 
-      let addBtn = document.getElementById(`${dept}-add`);
+      let addBtn = document.getElementById(${dept}-add);
       if (!addBtn) {
         addBtn = document.createElement("button");
-        addBtn.id = `${dept}-add`;
+        addBtn.id = ${dept}-add;
         addBtn.textContent = "+ Add Row";
         addBtn.onclick = () => openAddNameModal(dept);
         table.closest(".department").appendChild(addBtn);
@@ -361,7 +361,7 @@
 
   function filterList(inputId, listId) {
     const filter = document.getElementById(inputId).value.toLowerCase();
-    document.querySelectorAll(`#${listId} li`).forEach(li => {
+    document.querySelectorAll(#${listId} li).forEach(li => {
       li.style.display = li.textContent.toLowerCase().includes(filter) ? "" : "none";
     });
   }
